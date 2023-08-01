@@ -8,4 +8,4 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features --  -D warnings -W clippy::all
 cargo test --workspace --all-targets --all-features
 cargo test --workspace --doc
-cd pubsubman_gui && trunk build 
+trunk build pubsubman_gui/Trunk.toml
