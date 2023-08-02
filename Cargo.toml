@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["pubsubman_gui"]
+members = ["pubsubman_gui", "pubsubman_backend"]
 
 
 [profile.release]
