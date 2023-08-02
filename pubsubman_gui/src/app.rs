@@ -50,7 +50,6 @@ impl eframe::App for TemplateApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self { topics } = self;
 
-        #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
