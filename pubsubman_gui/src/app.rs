@@ -51,19 +51,9 @@ impl TemplateApp {
             Err(err) => println!("{:?}", err),
         }
     }
-}
 
-impl eframe::App for TemplateApp {
-    /// Called each time the UI needs repainting, which may be many times per second.
-    /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        ctx.request_repaint();
-        self.handle_backend_message();
-
-        let Self { topics, .. } = self;
-
+    fn render_top_panel(&self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // The top panel is often a good place for a menu bar:
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
@@ -72,18 +62,22 @@ impl eframe::App for TemplateApp {
                 });
             });
         });
+    }
 
+    fn render_topics_panel(&self, ctx: &egui::Context) {
         egui::SidePanel::left("side_panel")
             .exact_width(250.0)
             .resizable(false)
             .show(ctx, |ui| {
                 ui.heading("Topics");
 
-                for topic in topics.iter_mut() {
+                for topic in self.topics.iter() {
                     topic.show(ui);
                 }
             });
+    }
 
+    fn render_central_panel(&self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
 
@@ -95,14 +89,15 @@ impl eframe::App for TemplateApp {
             ));
             egui::warn_if_debug_build(ui);
         });
+    }
+}
 
-        if false {
-            egui::Window::new("Window").show(ctx, |ui| {
-                ui.label("Windows can be moved by dragging them.");
-                ui.label("They are automatically sized based on contents.");
-                ui.label("You can turn on resizing and scrolling if you like.");
-                ui.label("You would normally choose either panels OR windows.");
-            });
-        }
+impl eframe::App for TemplateApp {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        ctx.request_repaint();
+        self.handle_backend_message();
+        self.render_top_panel(ctx, frame);
+        self.render_topics_panel(ctx);
+        self.render_central_panel(ctx);
     }
 }

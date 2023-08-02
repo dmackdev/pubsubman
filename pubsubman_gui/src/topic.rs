@@ -4,7 +4,7 @@ pub struct Topic {
 }
 
 impl Topic {
-    pub fn show(&mut self, ui: &mut egui::Ui) {
+    pub fn show(&self, ui: &mut egui::Ui) {
         let frame = egui::Frame::none()
             .fill(ui.visuals().code_bg_color)
             .inner_margin(egui::Margin::same(5.0))
