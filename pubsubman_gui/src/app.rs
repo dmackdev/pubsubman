@@ -71,6 +71,7 @@ impl TemplateApp {
             .exact_width(250.0)
             .resizable(false)
             .show(ctx, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.heading("Topics");
 
                 for topic in self.topics.iter() {
@@ -83,6 +84,7 @@ impl TemplateApp {
 
                     topic.show(ui, is_selected, on_click);
                 }
+            });
             });
     }
 
