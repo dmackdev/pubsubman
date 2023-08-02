@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use pubsubman_backend::{
     message::{BackendMessage, FrontendMessage},
     Backend,
@@ -9,6 +11,9 @@ use crate::topic::Topic;
 pub struct TemplateApp {
     topics: Vec<Topic>,
     selected_topic: Option<String>,
+    /// The subscriptions this app has created in order to recieve messages.
+    /// Mapping of topic ID -> subscription ID.
+    subscriptions: HashMap<String, String>,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
 }
@@ -33,6 +38,7 @@ impl TemplateApp {
         Self {
             topics: vec![],
             selected_topic: None,
+            subscriptions: HashMap::new(),
             front_tx,
             back_rx,
         }
@@ -48,6 +54,9 @@ impl TemplateApp {
                     tokio::spawn(async move {
                         let _ = front_tx.send(FrontendMessage::RefreshTopicsRequest).await;
                     });
+                }
+                BackendMessage::SubscriptionCreated(topic_id, sub_id) => {
+                    self.subscriptions.insert(topic_id, sub_id);
                 }
             },
             Err(err) => println!("{:?}", err),
@@ -72,33 +81,60 @@ impl TemplateApp {
             .resizable(false)
             .show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.heading("Topics");
+                    ui.heading("Topics");
 
-                for topic in self.topics.iter() {
-                    let is_selected = self
-                        .selected_topic
-                        .as_ref()
-                        .is_some_and(|id| *id == topic.id);
+                    for topic in self.topics.iter() {
+                        let is_selected = self
+                            .selected_topic
+                            .as_ref()
+                            .is_some_and(|id| *id == topic.id);
 
-                    let on_click = || self.selected_topic = Some(topic.id.clone());
+                        let on_click = || {
+                            self.selected_topic = Some(topic.id.to_string());
 
-                    topic.show(ui, is_selected, on_click);
-                }
-            });
+                            if !self.subscriptions.contains_key(&topic.id) {
+                                let front_tx = self.front_tx.clone();
+                                let topic_id = topic.id.to_string();
+
+                                tokio::spawn(async move {
+                                    let _ = front_tx
+                                        .send(FrontendMessage::CreateSubscriptionRequest(topic_id))
+                                        .await;
+                                });
+                            }
+                        };
+
+                        topic.show(ui, is_selected, on_click);
+                    }
+                });
             });
     }
 
     fn render_central_panel(&self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
+            match &self.selected_topic {
+                Some(topic_id) => {
+                    ui.heading(topic_id);
 
-            ui.heading("eframe template");
-            ui.hyperlink("https://github.com/emilk/eframe_template");
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/master/",
-                "Source code."
-            ));
-            egui::warn_if_debug_build(ui);
+                    match self.subscriptions.get(topic_id) {
+                        Some(sub_id) => {
+                            ui.heading(format!("Active subscription: {}", sub_id));
+                        }
+                        None => {
+                            ui.vertical_centered(|ui| {
+                                ui.allocate_space(ui.available_size() / 2.0);
+                                ui.spinner();
+                            });
+                        }
+                    }
+                }
+                None => {
+                    ui.vertical_centered(|ui| {
+                        ui.allocate_space(ui.available_size() / 2.0);
+                        ui.heading("Select a Topic.");
+                    });
+                }
+            };
         });
     }
 }

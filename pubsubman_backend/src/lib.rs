@@ -1,28 +1,24 @@
-use google_cloud_pubsub::client::{Client, ClientConfig};
+use google_cloud_pubsub::{
+    client::{Client, ClientConfig},
+    subscription::SubscriptionConfig,
+};
 use message::{BackendMessage, FrontendMessage};
 use tokio::{
     runtime::Builder,
     sync::mpsc::{Receiver, Sender},
 };
+use uuid::Uuid;
 
 pub mod message;
 
 pub struct Backend {
     back_tx: Sender<BackendMessage>,
     front_rx: Receiver<FrontendMessage>,
-    client: Client,
 }
 
 impl Backend {
     pub async fn new(back_tx: Sender<BackendMessage>, front_rx: Receiver<FrontendMessage>) -> Self {
-        let config = ClientConfig::default().with_auth().await.unwrap();
-        let client = Client::new(config).await.unwrap();
-
-        Self {
-            back_tx,
-            front_rx,
-            client,
-        }
+        Self { back_tx, front_rx }
     }
 
     pub fn init(&mut self) {
@@ -36,13 +32,37 @@ impl Backend {
             if let Ok(message) = self.front_rx.try_recv() {
                 match message {
                     FrontendMessage::RefreshTopicsRequest => {
-                        let client = self.client.clone();
                         let back_tx = self.back_tx.clone();
 
                         rt.spawn(async move {
+                            let client = create_client().await;
                             let topics = client.get_topics(None).await.unwrap();
                             back_tx
                                 .send(BackendMessage::TopicsUpdated(topics))
+                                .await
+                                .unwrap();
+                        });
+                    }
+                    FrontendMessage::CreateSubscriptionRequest(topic_id) => {
+                        let back_tx = self.back_tx.clone();
+
+                        rt.spawn(async move {
+                            let client = create_client().await;
+
+                            let sub_id = format!("pubsubman-subscription-{}", Uuid::new_v4());
+
+                            let _subscription = client
+                                .create_subscription(
+                                    &sub_id,
+                                    &topic_id,
+                                    SubscriptionConfig::default(),
+                                    None,
+                                )
+                                .await
+                                .unwrap();
+
+                            back_tx
+                                .send(BackendMessage::SubscriptionCreated(topic_id, sub_id))
                                 .await
                                 .unwrap();
                         });
@@ -51,4 +71,9 @@ impl Backend {
             }
         }
     }
+}
+
+async fn create_client() -> Client {
+    let config = ClientConfig::default().with_auth().await.unwrap();
+    Client::new(config).await.unwrap()
 }
