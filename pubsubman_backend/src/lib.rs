@@ -1,3 +1,6 @@
+use std::time::Duration;
+
+use futures_util::StreamExt;
 use google_cloud_pubsub::{
     client::{Client, ClientConfig},
     subscription::SubscriptionConfig,
@@ -6,10 +9,12 @@ use message::{BackendMessage, FrontendMessage};
 use tokio::{
     runtime::Builder,
     sync::mpsc::{Receiver, Sender},
+    time::timeout,
 };
 use uuid::Uuid;
 
 pub mod message;
+pub mod pubsub_message;
 
 pub struct Backend {
     back_tx: Sender<BackendMessage>,
@@ -65,6 +70,32 @@ impl Backend {
                                 .send(BackendMessage::SubscriptionCreated(topic_id, sub_id))
                                 .await
                                 .unwrap();
+                        });
+                    }
+                    FrontendMessage::PullMessages(sub_id) => {
+                        let back_tx = self.back_tx.clone();
+
+                        rt.spawn(async move {
+                            let client = create_client().await;
+                            let subscription = client.subscription(&sub_id);
+
+                            let pull_messages_future = async move {
+                                let mut stream = subscription.subscribe(None).await.unwrap();
+
+                                while let Some(message) = stream.next().await {
+                                    let _ = message.ack().await;
+
+                                    back_tx
+                                        .send(BackendMessage::MessageReceived(
+                                            sub_id.clone(),
+                                            message.into(),
+                                        ))
+                                        .await
+                                        .unwrap();
+                                }
+                            };
+
+                            let _ = timeout(Duration::from_secs(1), pull_messages_future).await;
                         });
                     }
                 }

@@ -6,14 +6,14 @@ use pubsubman_backend::{
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 
-use crate::topic::Topic;
+use crate::{subscription::Subscription, topic::Topic};
 
 pub struct TemplateApp {
     topics: Vec<Topic>,
     selected_topic: Option<String>,
     /// The subscriptions this app has created in order to recieve messages.
-    /// Mapping of topic ID -> subscription ID.
-    subscriptions: HashMap<String, String>,
+    /// Mapping of topic ID -> Subscription.
+    subscriptions: HashMap<String, Subscription>,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
 }
@@ -56,10 +56,23 @@ impl TemplateApp {
                     });
                 }
                 BackendMessage::SubscriptionCreated(topic_id, sub_id) => {
-                    self.subscriptions.insert(topic_id, sub_id);
+                    self.subscriptions.insert(
+                        topic_id,
+                        Subscription {
+                            id: sub_id,
+                            messages: vec![],
+                        },
+                    );
+                }
+                BackendMessage::MessageReceived(sub_id, message) => {
+                    if let Some(subscription) =
+                        self.subscriptions.values_mut().find(|s| s.id == sub_id)
+                    {
+                        subscription.messages.push(message);
+                    }
                 }
             },
-            Err(err) => println!("{:?}", err),
+            Err(_err) => {} //println!("{:?}", err),
         }
     }
 
@@ -114,11 +127,53 @@ impl TemplateApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             match &self.selected_topic {
                 Some(topic_id) => {
-                    ui.heading(topic_id);
+                    egui::TopBottomPanel::top("topic_view_top_panel").show_inside(ui, |ui| {
+                        ui.heading(topic_id);
+                    });
 
                     match self.subscriptions.get(topic_id) {
-                        Some(sub_id) => {
-                            ui.heading(format!("Active subscription: {}", sub_id));
+                        Some(subscription) => {
+                            egui::TopBottomPanel::bottom("topic_view_bottom_panel")
+                                .exact_height(250.0)
+                                .show_inside(ui, |ui| {
+                                    ui.heading("Publish");
+                                });
+
+                            egui::CentralPanel::default().show_inside(ui, |ui| {
+                                ui.horizontal(|ui| {
+                                    ui.heading("Messages");
+                                    if ui.button("Pull").clicked() {
+                                        let front_tx = self.front_tx.clone();
+                                        let sub_id = subscription.id.clone();
+
+                                        tokio::spawn(async move {
+                                            front_tx
+                                                .send(FrontendMessage::PullMessages(sub_id))
+                                                .await
+                                                .unwrap();
+                                        });
+                                    }
+                                });
+
+                                egui::ScrollArea::vertical()
+                                    .auto_shrink([false, false])
+                                    .show(ui, |ui| {
+                                        for message in subscription.messages.iter() {
+                                            egui::Frame::none()
+                                                .stroke(egui::Stroke::new(
+                                                    0.0,
+                                                    egui::Color32::DARK_BLUE,
+                                                ))
+                                                .show(ui, |ui| {
+                                                    if let Some(publish_time) = message.publish_time
+                                                    {
+                                                        ui.label(publish_time.to_string());
+                                                    }
+                                                    ui.label(&message.data);
+                                                });
+                                        }
+                                    });
+                            });
                         }
                         None => {
                             ui.vertical_centered(|ui| {
