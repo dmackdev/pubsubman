@@ -2271,7 +2271,9 @@ dependencies = [
  "egui",
  "env_logger",
  "log",
+ "pubsubman_backend",
  "serde",
+ "tokio",
 ]
 
 [[package]]

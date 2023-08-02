@@ -20,3 +20,5 @@ log = "0.4"
 serde = { version = "1", features = ["derive"] }
 
 env_logger = "0.10"
+tokio = { version = "1.29.1", features = ["full"] }
+pubsubman_backend = { version = "0.1.0", path = "../pubsubman_backend" }

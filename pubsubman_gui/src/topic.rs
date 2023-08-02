@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct Topic {
     pub id: String,
 }
