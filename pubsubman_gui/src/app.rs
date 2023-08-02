@@ -8,6 +8,7 @@ use crate::topic::Topic;
 
 pub struct TemplateApp {
     topics: Vec<Topic>,
+    selected_topic: Option<String>,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
 }
@@ -31,6 +32,7 @@ impl TemplateApp {
 
         Self {
             topics: vec![],
+            selected_topic: None,
             front_tx,
             back_rx,
         }
@@ -64,7 +66,7 @@ impl TemplateApp {
         });
     }
 
-    fn render_topics_panel(&self, ctx: &egui::Context) {
+    fn render_topics_panel(&mut self, ctx: &egui::Context) {
         egui::SidePanel::left("side_panel")
             .exact_width(250.0)
             .resizable(false)
@@ -72,7 +74,14 @@ impl TemplateApp {
                 ui.heading("Topics");
 
                 for topic in self.topics.iter() {
-                    topic.show(ui);
+                    let is_selected = self
+                        .selected_topic
+                        .as_ref()
+                        .is_some_and(|id| *id == topic.id);
+
+                    let on_click = || self.selected_topic = Some(topic.id.clone());
+
+                    topic.show(ui, is_selected, on_click);
                 }
             });
     }
