@@ -13,6 +13,7 @@ use crate::{subscription::Subscription, topic::Topic};
 struct TopicViewState {
     selected_topic_id: String,
     stream_messages_enabled: bool,
+    stream_messages_cancel_token: Option<CancellationToken>,
 }
 
 impl TopicViewState {
@@ -20,6 +21,7 @@ impl TopicViewState {
         Self {
             selected_topic_id,
             stream_messages_enabled: false,
+            stream_messages_cancel_token: None,
         }
     }
 }
@@ -119,6 +121,7 @@ impl TemplateApp {
                             .is_some_and(|topic_view| *topic_view.selected_topic_id == topic.id);
 
                         let on_click = || {
+                            // TODO: Check if setting a different topic, and cancel the token for existing view if so.
                             self.topic_view = Some(TopicViewState::new(topic.id.to_string()));
 
                             if !self.subscriptions.contains_key(&topic.id) {
@@ -185,23 +188,29 @@ impl TemplateApp {
                                         ).on_disabled_hover_text("Disable Stream mode to Pull messages.");
                                       });
 
-                                      let stream_mode_toggle = ui.toggle_value( &mut topic_view.stream_messages_enabled,
+                                      let stream_mode_toggle = ui.toggle_value( 
+                                        &mut topic_view.stream_messages_enabled,
                                         "Stream",
                                       );
 
-                                      if stream_mode_toggle.changed() && topic_view.stream_messages_enabled {
-                                        let front_tx = self.front_tx.clone();
-                                        let sub_id = subscription.id.clone();
-                                        let cancel_token = CancellationToken::new();
+                                      if stream_mode_toggle.changed() { 
+                                        if topic_view.stream_messages_enabled {
+                                          let front_tx = self.front_tx.clone();
+                                          let sub_id = subscription.id.clone();
+                                          let cancel_token = CancellationToken::new();
+                                          let cancel_token_clone = cancel_token.clone();
 
-                                        tokio::spawn(async move {
-                                          front_tx
-                                          .send(FrontendMessage::Subscribe(sub_id, cancel_token))
-                                          .await
-                                          .unwrap();
-                                        });
+                                          tokio::spawn(async move {
+                                            front_tx
+                                            .send(FrontendMessage::Subscribe(sub_id, cancel_token))
+                                            .await
+                                            .unwrap();
+                                          });
 
-                                        // TODO: Store the cancellation token and cancel it when steam mode is disabled or this topic view is closed.
+                                          topic_view.stream_messages_cancel_token = Some(cancel_token_clone);
+                                        } else if let Some(cancel_token) = topic_view.stream_messages_cancel_token.take() {
+                                          cancel_token.cancel();
+                                        }
                                       }
 
                                       stream_mode_toggle.on_hover_text("Continuously retrieve messages delivered to this subscription.");
