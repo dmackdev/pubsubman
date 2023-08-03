@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use futures_util::StreamExt;
 use google_cloud_pubsub::{
     client::{Client, ClientConfig},
@@ -8,8 +6,8 @@ use google_cloud_pubsub::{
 use message::{BackendMessage, FrontendMessage};
 use tokio::{
     runtime::Builder,
+    select,
     sync::mpsc::{Receiver, Sender},
-    time::timeout,
 };
 use uuid::Uuid;
 
@@ -72,7 +70,7 @@ impl Backend {
                                 .unwrap();
                         });
                     }
-                    FrontendMessage::PullMessages(sub_id) => {
+                    FrontendMessage::Subscribe(sub_id, cancel_token) => {
                         let back_tx = self.back_tx.clone();
 
                         rt.spawn(async move {
@@ -95,7 +93,10 @@ impl Backend {
                                 }
                             };
 
-                            let _ = timeout(Duration::from_secs(1), pull_messages_future).await;
+                            select! {
+                              _ = cancel_token.cancelled() => {}
+                              _ = pull_messages_future => {}
+                            }
                         });
                     }
                 }

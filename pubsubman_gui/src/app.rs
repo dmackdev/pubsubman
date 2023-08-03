@@ -6,6 +6,7 @@ use pubsubman_backend::{
     Backend,
 };
 use tokio::sync::mpsc::{Receiver, Sender};
+use tokio_util::sync::CancellationToken;
 
 use crate::{subscription::Subscription, topic::Topic};
 
@@ -112,9 +113,10 @@ impl TemplateApp {
                     ui.heading("Topics");
 
                     for topic in self.topics.iter() {
-                        let is_selected = self.topic_view.as_ref().is_some_and(
-                            |topic_view| *topic_view.selected_topic_id == topic.id,
-                        );
+                        let is_selected = self
+                            .topic_view
+                            .as_ref()
+                            .is_some_and(|topic_view| *topic_view.selected_topic_id == topic.id);
 
                         let on_click = || {
                             self.topic_view = Some(TopicViewState::new(topic.id.to_string()));
@@ -160,28 +162,49 @@ impl TemplateApp {
                                     ui.add_enabled_ui(!topic_view.stream_messages_enabled, |ui| {
 
                                       let pull_button = ui.button("Pull");
-                                      
                                       if pull_button.clicked() {
                                         let front_tx = self.front_tx.clone();
                                         let sub_id = subscription.id.clone();
-                                        
+                                        let cancel_token = CancellationToken::new();
+                                        let cancel_token_clone = cancel_token.clone();
+
                                         tokio::spawn(async move {
                                           front_tx
-                                          .send(FrontendMessage::PullMessages(sub_id))
+                                          .send(FrontendMessage::Subscribe(sub_id, cancel_token))
                                           .await
                                           .unwrap();
-                                      });
-                                    }
-                                    
-                                   pull_button.on_hover_text(
-                                      "Retrieve batch of all undelivered messages on this subscription.",
-                                    ).on_disabled_hover_text("Disable Stream mode to Pull messages.");
-                                  });
+                                        });
 
-                                    ui.toggle_value(
-                                        &mut topic_view.stream_messages_enabled,
+                                        tokio::spawn(async move {
+                                          tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                                          cancel_token_clone.cancel();
+                                        });
+                                      }
+                                      pull_button.on_hover_text(
+                                          "Retrieve batch of all undelivered messages on this subscription.",
+                                        ).on_disabled_hover_text("Disable Stream mode to Pull messages.");
+                                      });
+
+                                      let stream_mode_toggle = ui.toggle_value( &mut topic_view.stream_messages_enabled,
                                         "Stream",
-                                    ).on_hover_text("Continuously retrieve messages delivered to this subscription.");
+                                      );
+
+                                      if stream_mode_toggle.changed() && topic_view.stream_messages_enabled {
+                                        let front_tx = self.front_tx.clone();
+                                        let sub_id = subscription.id.clone();
+                                        let cancel_token = CancellationToken::new();
+
+                                        tokio::spawn(async move {
+                                          front_tx
+                                          .send(FrontendMessage::Subscribe(sub_id, cancel_token))
+                                          .await
+                                          .unwrap();
+                                        });
+
+                                        // TODO: Store the cancellation token and cancel it when steam mode is disabled or this topic view is closed.
+                                      }
+
+                                      stream_mode_toggle.on_hover_text("Continuously retrieve messages delivered to this subscription.");
                                 });
 
                                 egui::ScrollArea::vertical()

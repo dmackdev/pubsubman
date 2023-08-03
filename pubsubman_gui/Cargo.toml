@@ -22,4 +22,5 @@ serde = { version = "1", features = ["derive"] }
 
 env_logger = "0.10"
 tokio = { workspace = true }
+tokio-util = { workspace = true }
 pubsubman_backend = { version = "0.1.0", path = "../pubsubman_backend" }

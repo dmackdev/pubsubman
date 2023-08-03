@@ -10,6 +10,7 @@ chrono = { workspace = true }
 futures-util = "0.3.28"
 google-cloud-pubsub = "0.18.0"
 tokio = { workspace = true }
+tokio-util = { workspace = true }
 
 [dependencies.uuid]
 version = "1.4.1"

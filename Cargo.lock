@@ -2328,6 +2328,7 @@ dependencies = [
  "futures-util",
  "google-cloud-pubsub",
  "tokio",
+ "tokio-util",
  "uuid",
 ]
 
@@ -2343,6 +2344,7 @@ dependencies = [
  "pubsubman_backend",
  "serde",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]
