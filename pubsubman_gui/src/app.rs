@@ -188,12 +188,12 @@ impl TemplateApp {
                                         ).on_disabled_hover_text("Disable Stream mode to Pull messages.");
                                       });
 
-                                      let stream_mode_toggle = ui.toggle_value( 
+                                      let stream_mode_toggle = ui.toggle_value(
                                         &mut topic_view.stream_messages_enabled,
                                         "Stream",
                                       );
 
-                                      if stream_mode_toggle.changed() { 
+                                      if stream_mode_toggle.changed() {
                                         if topic_view.stream_messages_enabled {
                                           let front_tx = self.front_tx.clone();
                                           let sub_id = subscription.id.clone();
