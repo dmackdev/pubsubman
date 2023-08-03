@@ -2,6 +2,8 @@
 
 members = ["pubsubman_gui", "pubsubman_backend"]
 
+[workspace.dependencies]
+tokio = { version = "1.29.1", features = ["full"] }
 
 [profile.release]
 opt-level = 2 # fast and small wasm
