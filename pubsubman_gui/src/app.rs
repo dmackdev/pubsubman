@@ -143,7 +143,9 @@ impl TemplateApp {
                             egui::CentralPanel::default().show_inside(ui, |ui| {
                                 ui.horizontal(|ui| {
                                     ui.heading("Messages");
-                                    if ui.button("Pull").clicked() {
+                                    let pull_button = ui.button("Pull");
+
+                                    if pull_button.clicked() {
                                         let front_tx = self.front_tx.clone();
                                         let sub_id = subscription.id.clone();
 
@@ -154,6 +156,10 @@ impl TemplateApp {
                                                 .unwrap();
                                         });
                                     }
+
+                                    pull_button.on_hover_text(
+                                        "Retrieve all undelivered messages on this subscription.",
+                                    );
                                 });
 
                                 egui::ScrollArea::vertical()
