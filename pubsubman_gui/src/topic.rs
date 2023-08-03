@@ -1,6 +1,6 @@
 use egui::style::Selection;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Topic {
     pub id: String,
 }

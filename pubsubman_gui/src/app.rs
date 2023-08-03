@@ -114,32 +114,47 @@ impl TemplateApp {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.heading("Topics");
 
-                    for topic in self.topics.iter() {
-                        let is_selected = self
-                            .topic_view
-                            .as_ref()
-                            .is_some_and(|topic_view| *topic_view.selected_topic_id == topic.id);
+                    let topics = self.topics.clone();
+                    for topic in topics {
+                        let is_selected = self.is_topic_selected(&topic.id);
 
-                        let on_click = || {
-                            // TODO: Check if setting a different topic, and cancel the token for existing view if so.
-                            self.topic_view = Some(TopicViewState::new(topic.id.to_string()));
-
-                            if !self.subscriptions.contains_key(&topic.id) {
-                                let front_tx = self.front_tx.clone();
-                                let topic_id = topic.id.to_string();
-
-                                tokio::spawn(async move {
-                                    let _ = front_tx
-                                        .send(FrontendMessage::CreateSubscriptionRequest(topic_id))
-                                        .await;
-                                });
-                            }
-                        };
-
-                        topic.show(ui, is_selected, on_click);
+                        topic.show(ui, is_selected, || self.on_topic_click(&topic.id));
                     }
                 });
             });
+    }
+
+    fn on_topic_click(&mut self, topic_id: &String) {
+        if self.is_topic_selected(topic_id) {
+            return;
+        }
+
+        if let Some(cancel_token) = self
+            .topic_view
+            .take()
+            .and_then(|topic_view| topic_view.stream_messages_cancel_token)
+        {
+            cancel_token.cancel();
+        }
+
+        self.topic_view = Some(TopicViewState::new(topic_id.to_string()));
+
+        if !self.subscriptions.contains_key(topic_id) {
+            let front_tx = self.front_tx.clone();
+            let topic_id = topic_id.to_string();
+
+            tokio::spawn(async move {
+                let _ = front_tx
+                    .send(FrontendMessage::CreateSubscriptionRequest(topic_id))
+                    .await;
+            });
+        }
+    }
+
+    fn is_topic_selected(&self, topic_id: &String) -> bool {
+        self.topic_view
+            .as_ref()
+            .is_some_and(|topic_view| &topic_view.selected_topic_id == topic_id)
     }
 
     fn render_central_panel(&mut self, ctx: &egui::Context) {
