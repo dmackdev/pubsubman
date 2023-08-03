@@ -9,9 +9,23 @@ use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{subscription::Subscription, topic::Topic};
 
+struct TopicViewState {
+    selected_topic_id: String,
+    stream_messages_enabled: bool,
+}
+
+impl TopicViewState {
+    fn new(selected_topic_id: String) -> Self {
+        Self {
+            selected_topic_id,
+            stream_messages_enabled: false,
+        }
+    }
+}
+
 pub struct TemplateApp {
     topics: Vec<Topic>,
-    selected_topic: Option<String>,
+    topic_view: Option<TopicViewState>,
     /// The subscriptions this app has created in order to recieve messages.
     /// Mapping of topic ID -> Subscription.
     subscriptions: HashMap<String, Subscription>,
@@ -38,7 +52,7 @@ impl TemplateApp {
 
         Self {
             topics: vec![],
-            selected_topic: None,
+            topic_view: None,
             subscriptions: HashMap::new(),
             front_tx,
             back_rx,
@@ -98,13 +112,12 @@ impl TemplateApp {
                     ui.heading("Topics");
 
                     for topic in self.topics.iter() {
-                        let is_selected = self
-                            .selected_topic
-                            .as_ref()
-                            .is_some_and(|id| *id == topic.id);
+                        let is_selected = self.topic_view.as_ref().is_some_and(
+                            |topic_view| *topic_view.selected_topic_id == topic.id,
+                        );
 
                         let on_click = || {
-                            self.selected_topic = Some(topic.id.to_string());
+                            self.topic_view = Some(TopicViewState::new(topic.id.to_string()));
 
                             if !self.subscriptions.contains_key(&topic.id) {
                                 let front_tx = self.front_tx.clone();
@@ -124,15 +137,15 @@ impl TemplateApp {
             });
     }
 
-    fn render_central_panel(&self, ctx: &egui::Context) {
+    fn render_central_panel(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            match &self.selected_topic {
-                Some(topic_id) => {
+            match self.topic_view.as_mut() {
+                Some(topic_view) => {
                     egui::TopBottomPanel::top("topic_view_top_panel").show_inside(ui, |ui| {
-                        ui.heading(topic_id);
+                        ui.heading(&topic_view.selected_topic_id);
                     });
 
-                    match self.subscriptions.get(topic_id) {
+                    match self.subscriptions.get(&topic_view.selected_topic_id) {
                         Some(subscription) => {
                             egui::TopBottomPanel::bottom("topic_view_bottom_panel")
                                 .exact_height(250.0)
@@ -143,23 +156,32 @@ impl TemplateApp {
                             egui::CentralPanel::default().show_inside(ui, |ui| {
                                 ui.horizontal(|ui| {
                                     ui.heading("Messages");
-                                    let pull_button = ui.button("Pull");
 
-                                    if pull_button.clicked() {
+                                    ui.add_enabled_ui(!topic_view.stream_messages_enabled, |ui| {
+
+                                      let pull_button = ui.button("Pull");
+                                      
+                                      if pull_button.clicked() {
                                         let front_tx = self.front_tx.clone();
                                         let sub_id = subscription.id.clone();
-
+                                        
                                         tokio::spawn(async move {
-                                            front_tx
-                                                .send(FrontendMessage::PullMessages(sub_id))
-                                                .await
-                                                .unwrap();
-                                        });
+                                          front_tx
+                                          .send(FrontendMessage::PullMessages(sub_id))
+                                          .await
+                                          .unwrap();
+                                      });
                                     }
+                                    
+                                   pull_button.on_hover_text(
+                                      "Retrieve batch of all undelivered messages on this subscription.",
+                                    ).on_disabled_hover_text("Disable Stream mode to Pull messages.");
+                                  });
 
-                                    pull_button.on_hover_text(
-                                        "Retrieve all undelivered messages on this subscription.",
-                                    );
+                                    ui.toggle_value(
+                                        &mut topic_view.stream_messages_enabled,
+                                        "Stream",
+                                    ).on_hover_text("Continuously retrieve messages delivered to this subscription.");
                                 });
 
                                 egui::ScrollArea::vertical()
