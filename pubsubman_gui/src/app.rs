@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Local};
 use pubsubman_backend::{
     message::{BackendMessage, FrontendMessage},
     Backend,
@@ -167,7 +168,14 @@ impl TemplateApp {
                                                 .show(ui, |ui| {
                                                     if let Some(publish_time) = message.publish_time
                                                     {
-                                                        ui.label(publish_time.to_string());
+                                                        let local_publish_time: DateTime<Local> =
+                                                            publish_time.into();
+
+                                                        ui.label(format!(
+                                                            "{}",
+                                                            local_publish_time
+                                                                .format("%d/%m/%Y %H:%M")
+                                                        ));
                                                     }
                                                     ui.label(&message.data);
                                                 });
