@@ -76,14 +76,20 @@ fn render_messages_table(ui: &mut egui::Ui, messages: &[PubsubMessage]) {
         .resizable(true)
         .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
         .column(Column::auto())
+        .column(Column::auto())
         .column(Column::remainder())
         .min_scrolled_height(0.0);
 
     table
         .header(20.0, |mut header| {
             header.col(|ui| {
-                ui.label("Published");
+                ui.label("ID");
             });
+
+            header.col(|ui| {
+                ui.label("Published at");
+            });
+
             header.col(|ui| {
                 ui.label("Payload");
             });
@@ -91,6 +97,10 @@ fn render_messages_table(ui: &mut egui::Ui, messages: &[PubsubMessage]) {
         .body(|mut body| {
             for message in messages {
                 body.row(ROW_HEIGHT, |mut row| {
+                    row.col(|ui| {
+                        ui.label(&message.id);
+                    });
+
                     row.col(|ui| {
                         if let Some(publish_time) = message.publish_time {
                             let local_publish_time: DateTime<Local> = publish_time.into();

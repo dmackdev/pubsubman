@@ -4,6 +4,7 @@ use std::str;
 
 #[derive(Debug)]
 pub struct PubsubMessage {
+    pub id: String,
     pub publish_time: Option<DateTime<Utc>>,
     pub data: String,
 }
@@ -21,6 +22,10 @@ impl From<ReceivedMessage> for PubsubMessage {
 
         let data = str::from_utf8(&value.message.data).unwrap().to_string();
 
-        Self { publish_time, data }
+        Self {
+            id: value.message.message_id,
+            publish_time,
+            data,
+        }
     }
 }
