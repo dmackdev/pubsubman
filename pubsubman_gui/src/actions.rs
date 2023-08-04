@@ -25,12 +25,12 @@ pub fn create_subscription(front_tx: &Sender<FrontendMessage>, topic_name: &Topi
 }
 
 pub fn pull_message_batch(
+    front_tx: &Sender<FrontendMessage>,
     topic_name: &TopicName,
     sub_name: &SubscriptionName,
-    front_tx: &Sender<FrontendMessage>,
     cancel_token: &CancellationToken,
 ) {
-    stream_messages(topic_name, sub_name, front_tx, cancel_token);
+    stream_messages(front_tx, topic_name, sub_name, cancel_token);
 
     let cancel_token_clone = cancel_token.clone();
 
@@ -41,9 +41,9 @@ pub fn pull_message_batch(
 }
 
 pub fn stream_messages(
+    front_tx: &Sender<FrontendMessage>,
     topic_name: &TopicName,
     sub_name: &SubscriptionName,
-    front_tx: &Sender<FrontendMessage>,
     cancel_token: &CancellationToken,
 ) {
     let topic_name = topic_name.to_owned();

@@ -41,9 +41,9 @@ impl TopicViewState {
                     let pull_button = ui.button("Pull");
                     if pull_button.clicked() {
                         pull_message_batch(
+                            front_tx,
                             &self.selected_topic_name,
                             sub_name,
-                            front_tx,
                             &CancellationToken::new(),
                         );
                     }
@@ -62,9 +62,9 @@ impl TopicViewState {
                         let cancel_token = CancellationToken::new();
 
                         stream_messages(
+                            front_tx,
                             &self.selected_topic_name,
                             sub_name,
-                            front_tx,
                             &cancel_token,
                         );
 
