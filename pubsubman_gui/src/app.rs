@@ -7,7 +7,10 @@ use pubsubman_backend::{
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 
-use crate::ui::{render_publish_panel, render_topic_name, TopicViewState};
+use crate::{
+    actions::{create_subscription, refresh_topics},
+    ui::{render_publish_panel, render_topic_name, TopicViewState},
+};
 
 pub struct TemplateApp {
     topic_names: Vec<TopicName>,
@@ -29,12 +32,7 @@ impl TemplateApp {
             Backend::new(back_tx, front_rx).await.init();
         });
 
-        let front_tx_clone = front_tx.clone();
-        tokio::spawn(async move {
-            let _ = front_tx_clone
-                .send(FrontendMessage::RefreshTopicsRequest)
-                .await;
-        });
+        refresh_topics(&front_tx);
 
         Self {
             topic_names: vec![],
@@ -51,11 +49,7 @@ impl TemplateApp {
             Ok(message) => match message {
                 BackendMessage::TopicsUpdated(topic_names) => {
                     self.topic_names = topic_names;
-
-                    let front_tx = self.front_tx.clone();
-                    tokio::spawn(async move {
-                        let _ = front_tx.send(FrontendMessage::RefreshTopicsRequest).await;
-                    });
+                    refresh_topics(&self.front_tx);
                 }
                 BackendMessage::SubscriptionCreated(topic_name, sub_name) => {
                     self.subscriptions.insert(topic_name, sub_name);
@@ -116,14 +110,7 @@ impl TemplateApp {
         self.topic_view = Some(TopicViewState::new(topic_name.clone()));
 
         if !self.subscriptions.contains_key(topic_name) {
-            let front_tx = self.front_tx.clone();
-            let topic_name = topic_name.clone();
-
-            tokio::spawn(async move {
-                let _ = front_tx
-                    .send(FrontendMessage::CreateSubscriptionRequest(topic_name))
-                    .await;
-            });
+            create_subscription(&self.front_tx, topic_name);
         }
     }
 

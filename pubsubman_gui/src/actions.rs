@@ -5,6 +5,25 @@ use pubsubman_backend::{
 use tokio::sync::mpsc::Sender;
 use tokio_util::sync::CancellationToken;
 
+pub fn refresh_topics(front_tx: &Sender<FrontendMessage>) {
+    let front_tx = front_tx.to_owned();
+
+    tokio::spawn(async move {
+        let _ = front_tx.send(FrontendMessage::RefreshTopicsRequest).await;
+    });
+}
+
+pub fn create_subscription(front_tx: &Sender<FrontendMessage>, topic_name: &TopicName) {
+    let front_tx = front_tx.to_owned();
+    let topic_name = topic_name.to_owned();
+
+    tokio::spawn(async move {
+        let _ = front_tx
+            .send(FrontendMessage::CreateSubscriptionRequest(topic_name))
+            .await;
+    });
+}
+
 pub fn pull_message_batch(
     topic_name: &TopicName,
     sub_name: &SubscriptionName,
