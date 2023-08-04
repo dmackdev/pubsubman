@@ -130,10 +130,14 @@ impl App {
                         ui.heading(&topic_view.selected_topic_name.0);
                     });
 
-                    self.publish_forms
-                        .entry(topic_view.selected_topic_name.clone())
-                        .or_default()
-                        .show(ui);
+                    egui::TopBottomPanel::bottom("topic_view_bottom_panel")
+                        .exact_height(250.0)
+                        .show_inside(ui, |ui| {
+                            self.publish_forms
+                                .entry(topic_view.selected_topic_name.clone())
+                                .or_default()
+                                .show(ui);
+                        });
 
                     match self.subscriptions.get(&topic_view.selected_topic_name) {
                         Some(sub_name) => {
