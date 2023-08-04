@@ -1,9 +1,9 @@
 #[derive(Default)]
-pub struct PublishMessageFormState {
+pub struct PublishView {
     data: String,
 }
 
-impl PublishMessageFormState {
+impl PublishView {
     pub fn show(&mut self, ui: &mut egui::Ui) {
         ui.heading("Publish");
 

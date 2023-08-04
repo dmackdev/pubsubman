@@ -9,7 +9,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{
     actions::{create_subscription, refresh_topics},
-    ui::{render_topic_name, MessagesView, PublishMessageFormState},
+    ui::{render_topic_name, MessagesView, PublishView},
 };
 
 pub struct App {
@@ -18,7 +18,7 @@ pub struct App {
     /// The subscriptions this app has created in order to recieve messages.
     subscriptions: HashMap<TopicName, SubscriptionName>,
     messages: HashMap<TopicName, Vec<PubsubMessage>>,
-    publish_forms: HashMap<TopicName, PublishMessageFormState>,
+    publish_views: HashMap<TopicName, PublishView>,
     messages_views: HashMap<TopicName, MessagesView>,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
@@ -41,7 +41,7 @@ impl App {
             selected_topic: None,
             subscriptions: HashMap::new(),
             messages: HashMap::new(),
-            publish_forms: HashMap::new(),
+            publish_views: HashMap::new(),
             messages_views: HashMap::new(),
             front_tx,
             back_rx,
@@ -139,7 +139,7 @@ impl App {
                     egui::TopBottomPanel::bottom("topic_view_bottom_panel")
                         .exact_height(250.0)
                         .show_inside(ui, |ui| {
-                            self.publish_forms
+                            self.publish_views
                                 .entry(selected_topic.clone())
                                 .or_default()
                                 .show(ui);
