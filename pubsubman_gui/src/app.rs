@@ -12,7 +12,7 @@ use crate::{
     ui::{render_topic_name, PublishMessageFormState, TopicViewState},
 };
 
-pub struct TemplateApp {
+pub struct App {
     topic_names: Vec<TopicName>,
     topic_view: Option<TopicViewState>,
     /// The subscriptions this app has created in order to recieve messages.
@@ -23,7 +23,7 @@ pub struct TemplateApp {
     back_rx: Receiver<BackendMessage>,
 }
 
-impl TemplateApp {
+impl App {
     /// Called once before the first frame.
     pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         let (front_tx, front_rx) = tokio::sync::mpsc::channel(10);
@@ -165,7 +165,7 @@ impl TemplateApp {
     }
 }
 
-impl eframe::App for TemplateApp {
+impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         ctx.request_repaint();
         self.handle_backend_message();

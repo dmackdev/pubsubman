@@ -3,4 +3,4 @@
 mod actions;
 mod app;
 mod ui;
-pub use app::TemplateApp;
+pub use app::App;

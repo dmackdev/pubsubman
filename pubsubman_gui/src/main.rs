@@ -9,6 +9,6 @@ async fn main() -> eframe::Result<()> {
     eframe::run_native(
         "pubsubman",
         native_options,
-        Box::new(|cc| Box::new(pubsubman_gui::TemplateApp::new(cc))),
+        Box::new(|cc| Box::new(pubsubman_gui::App::new(cc))),
     )
 }
