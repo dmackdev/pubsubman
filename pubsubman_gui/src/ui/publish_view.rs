@@ -20,15 +20,17 @@ impl PublishView {
     ) {
         ui.heading("New Message");
 
-        ui.label("Data:");
-        ui.add(
-            egui::TextEdit::multiline(&mut self.data)
-                .font(egui::TextStyle::Monospace)
-                .code_editor()
-                .desired_rows(1)
-                .lock_focus(true)
-                .desired_width(f32::INFINITY),
-        );
+        egui::CollapsingHeader::new("Data")
+            .id_source(format!("{}-data", selected_topic.0))
+            .default_open(true)
+            .show(ui, |ui| {
+                ui.add(
+                    egui::TextEdit::multiline(&mut self.data)
+                        .code_editor()
+                        .desired_rows(4)
+                        .desired_width(250.0),
+                );
+            });
 
         if ui.button("Publish").clicked() {
             publish_message(front_tx, selected_topic, self.into())
