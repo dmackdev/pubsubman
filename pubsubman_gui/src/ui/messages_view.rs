@@ -68,9 +68,11 @@ impl MessagesView {
     }
 }
 
-const ROW_HEIGHT: f32 = 18.0;
+const ROW_HEIGHT_PADDING: f32 = 4.0;
 
 fn render_messages_table(ui: &mut egui::Ui, messages: &[PubsubMessage]) {
+    let text_height = ui.text_style_height(&egui::TextStyle::Monospace);
+
     let table = TableBuilder::new(ui)
         .striped(true)
         .resizable(true)
@@ -96,7 +98,10 @@ fn render_messages_table(ui: &mut egui::Ui, messages: &[PubsubMessage]) {
         })
         .body(|mut body| {
             for message in messages {
-                body.row(ROW_HEIGHT, |mut row| {
+                let num_lines = message.data.split('\n').count();
+                let row_height = num_lines as f32 * text_height + ROW_HEIGHT_PADDING;
+
+                body.row(row_height, |mut row| {
                     row.col(|ui| {
                         ui.label(&message.id);
                     });
@@ -110,7 +115,12 @@ fn render_messages_table(ui: &mut egui::Ui, messages: &[PubsubMessage]) {
                     });
 
                     row.col(|ui| {
-                        ui.label(&message.data);
+                        ui.add(
+                            egui::TextEdit::multiline(&mut message.data.clone())
+                                .code_editor()
+                                .interactive(false)
+                                .frame(false),
+                        );
                     });
                 });
             }
