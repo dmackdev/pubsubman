@@ -165,20 +165,24 @@ impl App {
                             );
                         }
                         None => {
-                            ui.vertical_centered(|ui| {
-                                ui.allocate_space(ui.available_size() / 2.0);
-                                ui.spinner();
-                            });
+                            ui.with_layout(
+                                egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
+                                |ui| {
+                                    ui.spinner();
+                                },
+                            );
                         }
                     }
                 });
             }
             None => {
                 egui::CentralPanel::default().show(ctx, |ui| {
-                    ui.vertical_centered(|ui| {
-                        ui.allocate_space(ui.available_size() / 2.0);
-                        ui.heading("Select a Topic.");
-                    });
+                    ui.with_layout(
+                        egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
+                        |ui| {
+                            ui.heading("Select a Topic.");
+                        },
+                    );
                 });
             }
         };
