@@ -54,18 +54,18 @@ impl Backend {
                                 .unwrap();
                         });
                     }
-                    FrontendMessage::CreateSubscriptionRequest(topic_id) => {
+                    FrontendMessage::CreateSubscriptionRequest(topic_name) => {
                         let back_tx = self.back_tx.clone();
 
                         rt.spawn(async move {
                             let client = create_client().await;
 
-                            let sub_id = format!("pubsubman-subscription-{}", Uuid::new_v4());
+                            let sub_name = format!("pubsubman-subscription-{}", Uuid::new_v4());
 
                             let _subscription = client
                                 .create_subscription(
-                                    &sub_id,
-                                    &topic_id.0,
+                                    &sub_name,
+                                    &topic_name.0,
                                     SubscriptionConfig::default(),
                                     None,
                                 )
@@ -74,19 +74,19 @@ impl Backend {
 
                             back_tx
                                 .send(BackendMessage::SubscriptionCreated(
-                                    topic_id,
-                                    SubscriptionName(sub_id),
+                                    topic_name,
+                                    SubscriptionName(sub_name),
                                 ))
                                 .await
                                 .unwrap();
                         });
                     }
-                    FrontendMessage::Subscribe(topic_id, sub_id, cancel_token) => {
+                    FrontendMessage::Subscribe(topic_name, sub_name, cancel_token) => {
                         let back_tx = self.back_tx.clone();
 
                         rt.spawn(async move {
                             let client = create_client().await;
-                            let subscription = client.subscription(&sub_id.0);
+                            let subscription = client.subscription(&sub_name.0);
 
                             let pull_messages_future = async move {
                                 let mut stream = subscription.subscribe(None).await.unwrap();
@@ -96,7 +96,7 @@ impl Backend {
 
                                     back_tx
                                         .send(BackendMessage::MessageReceived(
-                                            topic_id.clone(),
+                                            topic_name.clone(),
                                             message.into(),
                                         ))
                                         .await
