@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 chrono = { workspace = true }
 futures-util = "0.3.28"
+google-cloud-googleapis = "0.10.0"
 google-cloud-pubsub = "0.18.0"
 tokio = { workspace = true }
 tokio-util = { workspace = true }

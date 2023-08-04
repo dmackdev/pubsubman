@@ -110,6 +110,15 @@ impl Backend {
                             }
                         });
                     }
+                    FrontendMessage::PublishMessage(topic_name, message) => {
+                        rt.spawn(async move {
+                            let client = create_client().await;
+                            let topic = client.topic(&topic_name.0);
+                            let publisher = topic.new_publisher(None);
+                            let awaiter = publisher.publish(message.into()).await;
+                            awaiter.get().await
+                        });
+                    }
                 }
             }
         }

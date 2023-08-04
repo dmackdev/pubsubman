@@ -1,6 +1,6 @@
 use pubsubman_backend::{
     message::FrontendMessage,
-    model::{SubscriptionName, TopicName},
+    model::{PubsubMessageToPublish, SubscriptionName, TopicName},
 };
 use tokio::sync::mpsc::Sender;
 use tokio_util::sync::CancellationToken;
@@ -58,6 +58,22 @@ pub fn stream_messages(
                 sub_name,
                 cancel_token,
             ))
+            .await
+            .unwrap();
+    });
+}
+
+pub fn publish_message(
+    front_tx: &Sender<FrontendMessage>,
+    topic_name: &TopicName,
+    message: PubsubMessageToPublish,
+) {
+    let front_tx = front_tx.to_owned();
+    let topic_name = topic_name.to_owned();
+
+    tokio::spawn(async move {
+        front_tx
+            .send(FrontendMessage::PublishMessage(topic_name, message))
             .await
             .unwrap();
     });

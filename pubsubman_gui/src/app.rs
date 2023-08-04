@@ -142,7 +142,7 @@ impl App {
                             self.publish_views
                                 .entry(selected_topic.clone())
                                 .or_default()
-                                .show(ui);
+                                .show(ui, &self.front_tx, selected_topic);
                         });
 
                     egui::CentralPanel::default().show_inside(ui, |ui| {

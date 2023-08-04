@@ -2336,6 +2336,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "futures-util",
+ "google-cloud-googleapis",
  "google-cloud-pubsub",
  "tokio",
  "tokio-util",
