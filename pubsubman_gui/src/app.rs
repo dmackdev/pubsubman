@@ -80,8 +80,8 @@ impl App {
 
     fn render_topics_panel(&mut self, ctx: &egui::Context) {
         egui::SidePanel::left("side_panel")
-            .exact_width(250.0)
-            .resizable(false)
+            .resizable(true)
+            .default_width(250.0)
             .show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.heading("Topics");
@@ -129,55 +129,59 @@ impl App {
     }
 
     fn render_central_panel(&mut self, ctx: &egui::Context) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            match &self.selected_topic {
-                Some(selected_topic) => {
-                    egui::TopBottomPanel::top("topic_view_top_panel").show_inside(ui, |ui| {
+        match &self.selected_topic {
+            Some(selected_topic) => {
+                egui::TopBottomPanel::top("topic_view_top_panel").show(ctx, |ui| {
+                    ui.vertical_centered(|ui| {
                         ui.heading(&selected_topic.0);
                     });
+                });
 
-                    egui::TopBottomPanel::bottom("topic_view_bottom_panel")
-                        .exact_height(250.0)
-                        .show_inside(ui, |ui| {
-                            self.publish_views
-                                .entry(selected_topic.clone())
-                                .or_default()
-                                .show(ui, &self.front_tx, selected_topic);
-                        });
+                egui::TopBottomPanel::bottom("topic_view_bottom_panel")
+                    .resizable(true)
+                    .show(ctx, |ui| {
+                        self.publish_views
+                            .entry(selected_topic.clone())
+                            .or_default()
+                            .show(ui, &self.front_tx, selected_topic);
 
-                    egui::CentralPanel::default().show_inside(ui, |ui| {
-                        match self.subscriptions.get(selected_topic) {
-                            Some(sub_name) => {
-                                let messages_view = self
-                                    .messages_views
-                                    .entry(selected_topic.clone())
-                                    .or_default();
-
-                                messages_view.show(
-                                    ui,
-                                    &self.front_tx,
-                                    selected_topic,
-                                    sub_name,
-                                    self.messages.get(selected_topic).unwrap_or(&vec![]),
-                                );
-                            }
-                            None => {
-                                ui.vertical_centered(|ui| {
-                                    ui.allocate_space(ui.available_size() / 2.0);
-                                    ui.spinner();
-                                });
-                            }
-                        }
+                        ui.allocate_space(ui.available_size());
                     });
-                }
-                None => {
+
+                egui::CentralPanel::default().show(ctx, |ui| {
+                    match self.subscriptions.get(selected_topic) {
+                        Some(sub_name) => {
+                            let messages_view = self
+                                .messages_views
+                                .entry(selected_topic.clone())
+                                .or_default();
+
+                            messages_view.show(
+                                ui,
+                                &self.front_tx,
+                                selected_topic,
+                                sub_name,
+                                self.messages.get(selected_topic).unwrap_or(&vec![]),
+                            );
+                        }
+                        None => {
+                            ui.vertical_centered(|ui| {
+                                ui.allocate_space(ui.available_size() / 2.0);
+                                ui.spinner();
+                            });
+                        }
+                    }
+                });
+            }
+            None => {
+                egui::CentralPanel::default().show(ctx, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.allocate_space(ui.available_size() / 2.0);
                         ui.heading("Select a Topic.");
                     });
-                }
-            };
-        });
+                });
+            }
+        };
     }
 }
 
