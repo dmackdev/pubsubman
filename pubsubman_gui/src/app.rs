@@ -1,31 +1,13 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Local};
 use pubsubman_backend::{
     message::{BackendMessage, FrontendMessage},
     model::{PubsubMessage, SubscriptionName, TopicName},
     Backend,
 };
 use tokio::sync::mpsc::{Receiver, Sender};
-use tokio_util::sync::CancellationToken;
 
-use crate::ui::render_topic_name;
-
-struct TopicViewState {
-    selected_topic_name: TopicName,
-    stream_messages_enabled: bool,
-    stream_messages_cancel_token: Option<CancellationToken>,
-}
-
-impl TopicViewState {
-    fn new(selected_topic: TopicName) -> Self {
-        Self {
-            selected_topic_name: selected_topic,
-            stream_messages_enabled: false,
-            stream_messages_cancel_token: None,
-        }
-    }
-}
+use crate::ui::{render_publish_panel, render_topic_name, TopicViewState};
 
 pub struct TemplateApp {
     topic_names: Vec<TopicName>,
@@ -159,100 +141,18 @@ impl TemplateApp {
                         ui.heading(&topic_view.selected_topic_name.0);
                     });
 
+                    render_publish_panel(ui);
+
                     match self.subscriptions.get(&topic_view.selected_topic_name) {
                         Some(sub_name) => {
-                            egui::TopBottomPanel::bottom("topic_view_bottom_panel")
-                                .exact_height(250.0)
-                                .show_inside(ui, |ui| {
-                                    ui.heading("Publish");
-                                });
-
-                            egui::CentralPanel::default().show_inside(ui, |ui| {
-                                ui.horizontal(|ui| {
-                                    ui.heading("Messages");
-
-                                    ui.add_enabled_ui(!topic_view.stream_messages_enabled, |ui| {
-
-                                      let pull_button = ui.button("Pull");
-                                      if pull_button.clicked() {
-                                        let front_tx = self.front_tx.clone();
-                                        let topic_name = topic_view.selected_topic_name.clone();
-                                        let sub_name = sub_name.clone();
-                                        let cancel_token = CancellationToken::new();
-                                        let cancel_token_clone = cancel_token.clone();
-
-                                        tokio::spawn(async move {
-                                          front_tx
-                                          .send(FrontendMessage::PullMessages(topic_name, sub_name, cancel_token))
-                                          .await
-                                          .unwrap();
-                                        });
-
-                                        tokio::spawn(async move {
-                                          tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-                                          cancel_token_clone.cancel();
-                                        });
-                                      }
-                                      pull_button.on_hover_text(
-                                          "Retrieve batch of all undelivered messages on this subscription.",
-                                        ).on_disabled_hover_text("Disable Stream mode to Pull messages.");
-                                      });
-
-                                      let stream_mode_toggle = ui.toggle_value(
-                                        &mut topic_view.stream_messages_enabled,
-                                        "Stream",
-                                      );
-
-                                      if stream_mode_toggle.changed() {
-                                        if topic_view.stream_messages_enabled {
-                                          let front_tx = self.front_tx.clone();
-                                          let topic_name = topic_view.selected_topic_name.clone();
-                                          let sub_name = sub_name.clone();
-                                          let cancel_token = CancellationToken::new();
-                                          let cancel_token_clone = cancel_token.clone();
-
-                                          tokio::spawn(async move {
-                                            front_tx
-                                            .send(FrontendMessage::PullMessages(topic_name, sub_name, cancel_token))
-                                            .await
-                                            .unwrap();
-                                          });
-
-                                          topic_view.stream_messages_cancel_token = Some(cancel_token_clone);
-                                        } else if let Some(cancel_token) = topic_view.stream_messages_cancel_token.take() {
-                                          cancel_token.cancel();
-                                        }
-                                      }
-
-                                      stream_mode_toggle.on_hover_text("Continuously retrieve messages delivered to this subscription.");
-                                });
-
-                                egui::ScrollArea::vertical()
-                                    .auto_shrink([false, false])
-                                    .show(ui, |ui| {
-                                        for message in self.messages.get(&topic_view.selected_topic_name).unwrap_or(&vec![]).iter() {
-                                            egui::Frame::none()
-                                                .stroke(egui::Stroke::new(
-                                                    0.0,
-                                                    egui::Color32::DARK_BLUE,
-                                                ))
-                                                .show(ui, |ui| {
-                                                    if let Some(publish_time) = message.publish_time
-                                                    {
-                                                        let local_publish_time: DateTime<Local> =
-                                                            publish_time.into();
-
-                                                        ui.label(format!(
-                                                            "{}",
-                                                            local_publish_time
-                                                                .format("%d/%m/%Y %H:%M")
-                                                        ));
-                                                    }
-                                                    ui.label(&message.data);
-                                                });
-                                        }
-                                    });
-                            });
+                            topic_view.show(
+                                ui,
+                                &self.front_tx,
+                                sub_name,
+                                self.messages
+                                    .get(&topic_view.selected_topic_name)
+                                    .unwrap_or(&vec![]),
+                            );
                         }
                         None => {
                             ui.vertical_centered(|ui| {
