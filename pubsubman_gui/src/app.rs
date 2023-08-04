@@ -3,21 +3,22 @@ use std::collections::HashMap;
 use chrono::{DateTime, Local};
 use pubsubman_backend::{
     message::{BackendMessage, FrontendMessage},
+    model::{PubsubMessage, SubscriptionName, TopicName},
     Backend,
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio_util::sync::CancellationToken;
 
-use crate::{subscription::Subscription, topic::Topic};
+use crate::topic::Render;
 
 struct TopicViewState {
-    selected_topic_id: String,
+    selected_topic_id: TopicName,
     stream_messages_enabled: bool,
     stream_messages_cancel_token: Option<CancellationToken>,
 }
 
 impl TopicViewState {
-    fn new(selected_topic_id: String) -> Self {
+    fn new(selected_topic_id: TopicName) -> Self {
         Self {
             selected_topic_id,
             stream_messages_enabled: false,
@@ -27,11 +28,12 @@ impl TopicViewState {
 }
 
 pub struct TemplateApp {
-    topics: Vec<Topic>,
+    topics: Vec<TopicName>,
     topic_view: Option<TopicViewState>,
     /// The subscriptions this app has created in order to recieve messages.
     /// Mapping of topic ID -> Subscription.
-    subscriptions: HashMap<String, Subscription>,
+    subscriptions: HashMap<TopicName, SubscriptionName>,
+    messages: HashMap<TopicName, Vec<PubsubMessage>>,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
 }
@@ -57,6 +59,7 @@ impl TemplateApp {
             topics: vec![],
             topic_view: None,
             subscriptions: HashMap::new(),
+            messages: HashMap::new(),
             front_tx,
             back_rx,
         }
@@ -66,7 +69,7 @@ impl TemplateApp {
         match self.back_rx.try_recv() {
             Ok(message) => match message {
                 BackendMessage::TopicsUpdated(topics) => {
-                    self.topics = topics.into_iter().map(|id| Topic { id }).collect();
+                    self.topics = topics;
 
                     let front_tx = self.front_tx.clone();
                     tokio::spawn(async move {
@@ -74,20 +77,10 @@ impl TemplateApp {
                     });
                 }
                 BackendMessage::SubscriptionCreated(topic_id, sub_id) => {
-                    self.subscriptions.insert(
-                        topic_id,
-                        Subscription {
-                            id: sub_id,
-                            messages: vec![],
-                        },
-                    );
+                    self.subscriptions.insert(topic_id, sub_id);
                 }
-                BackendMessage::MessageReceived(sub_id, message) => {
-                    if let Some(subscription) =
-                        self.subscriptions.values_mut().find(|s| s.id == sub_id)
-                    {
-                        subscription.messages.push(message);
-                    }
+                BackendMessage::MessageReceived(topic_id, message) => {
+                    self.messages.entry(topic_id).or_default().push(message);
                 }
             },
             Err(_err) => {} //println!("{:?}", err),
@@ -116,15 +109,15 @@ impl TemplateApp {
 
                     let topics = self.topics.clone();
                     for topic in topics {
-                        let is_selected = self.is_topic_selected(&topic.id);
+                        let is_selected = self.is_topic_selected(&topic);
 
-                        topic.show(ui, is_selected, || self.on_topic_click(&topic.id));
+                        topic.show(ui, is_selected, || self.on_topic_click(&topic));
                     }
                 });
             });
     }
 
-    fn on_topic_click(&mut self, topic_id: &String) {
+    fn on_topic_click(&mut self, topic_id: &TopicName) {
         if self.is_topic_selected(topic_id) {
             return;
         }
@@ -137,11 +130,11 @@ impl TemplateApp {
             cancel_token.cancel();
         }
 
-        self.topic_view = Some(TopicViewState::new(topic_id.to_string()));
+        self.topic_view = Some(TopicViewState::new(topic_id.clone()));
 
         if !self.subscriptions.contains_key(topic_id) {
             let front_tx = self.front_tx.clone();
-            let topic_id = topic_id.to_string();
+            let topic_id = topic_id.clone();
 
             tokio::spawn(async move {
                 let _ = front_tx
@@ -151,7 +144,7 @@ impl TemplateApp {
         }
     }
 
-    fn is_topic_selected(&self, topic_id: &String) -> bool {
+    fn is_topic_selected(&self, topic_id: &TopicName) -> bool {
         self.topic_view
             .as_ref()
             .is_some_and(|topic_view| &topic_view.selected_topic_id == topic_id)
@@ -162,7 +155,7 @@ impl TemplateApp {
             match self.topic_view.as_mut() {
                 Some(topic_view) => {
                     egui::TopBottomPanel::top("topic_view_top_panel").show_inside(ui, |ui| {
-                        ui.heading(&topic_view.selected_topic_id);
+                        ui.heading(&topic_view.selected_topic_id.0);
                     });
 
                     match self.subscriptions.get(&topic_view.selected_topic_id) {
@@ -182,13 +175,14 @@ impl TemplateApp {
                                       let pull_button = ui.button("Pull");
                                       if pull_button.clicked() {
                                         let front_tx = self.front_tx.clone();
-                                        let sub_id = subscription.id.clone();
+                                        let topic_id = topic_view.selected_topic_id.clone();
+                                        let sub_id = subscription.clone();
                                         let cancel_token = CancellationToken::new();
                                         let cancel_token_clone = cancel_token.clone();
 
                                         tokio::spawn(async move {
                                           front_tx
-                                          .send(FrontendMessage::Subscribe(sub_id, cancel_token))
+                                          .send(FrontendMessage::Subscribe(topic_id, sub_id, cancel_token))
                                           .await
                                           .unwrap();
                                         });
@@ -211,13 +205,14 @@ impl TemplateApp {
                                       if stream_mode_toggle.changed() {
                                         if topic_view.stream_messages_enabled {
                                           let front_tx = self.front_tx.clone();
-                                          let sub_id = subscription.id.clone();
+                                          let topic_id = topic_view.selected_topic_id.clone();
+                                          let sub_id = subscription.clone();
                                           let cancel_token = CancellationToken::new();
                                           let cancel_token_clone = cancel_token.clone();
 
                                           tokio::spawn(async move {
                                             front_tx
-                                            .send(FrontendMessage::Subscribe(sub_id, cancel_token))
+                                            .send(FrontendMessage::Subscribe(topic_id, sub_id, cancel_token))
                                             .await
                                             .unwrap();
                                           });
@@ -234,7 +229,7 @@ impl TemplateApp {
                                 egui::ScrollArea::vertical()
                                     .auto_shrink([false, false])
                                     .show(ui, |ui| {
-                                        for message in subscription.messages.iter() {
+                                        for message in self.messages.get(&topic_view.selected_topic_id).unwrap_or(&vec![]).iter() {
                                             egui::Frame::none()
                                                 .stroke(egui::Stroke::new(
                                                     0.0,

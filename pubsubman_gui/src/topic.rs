@@ -1,12 +1,12 @@
 use egui::style::Selection;
+use pubsubman_backend::model::TopicName;
 
-#[derive(Debug, Clone)]
-pub struct Topic {
-    pub id: String,
+pub trait Render {
+    fn show(&self, ui: &mut egui::Ui, is_selected: bool, on_click: impl FnOnce());
 }
 
-impl Topic {
-    pub fn show(&self, ui: &mut egui::Ui, is_selected: bool, on_click: impl FnOnce()) {
+impl Render for TopicName {
+    fn show(&self, ui: &mut egui::Ui, is_selected: bool, on_click: impl FnOnce()) {
         let (stroke, fill) = if is_selected {
             let Selection { stroke, bg_fill } = ui.visuals().selection;
             (stroke, bg_fill)
@@ -23,7 +23,7 @@ impl Topic {
             .show(ui, |ui| {
                 ui.set_width(ui.available_width());
 
-                let mut text = egui::RichText::new(&self.id);
+                let mut text = egui::RichText::new(&self.0);
 
                 if is_selected {
                     text = text.color(stroke.color);

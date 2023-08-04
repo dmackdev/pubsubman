@@ -1,17 +1,17 @@
 use tokio_util::sync::CancellationToken;
 
-use crate::model::PubsubMessage;
+use crate::model::{PubsubMessage, SubscriptionName, TopicName};
 
 #[derive(Debug)]
 pub enum FrontendMessage {
     RefreshTopicsRequest,
-    CreateSubscriptionRequest(String),
-    Subscribe(String, CancellationToken),
+    CreateSubscriptionRequest(TopicName),
+    Subscribe(TopicName, SubscriptionName, CancellationToken),
 }
 
 #[derive(Debug)]
 pub enum BackendMessage {
-    TopicsUpdated(Vec<String>),
-    SubscriptionCreated(String, String),
-    MessageReceived(String, PubsubMessage),
+    TopicsUpdated(Vec<TopicName>),
+    SubscriptionCreated(TopicName, SubscriptionName),
+    MessageReceived(TopicName, PubsubMessage),
 }

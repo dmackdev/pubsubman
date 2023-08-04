@@ -4,6 +4,7 @@ use google_cloud_pubsub::{
     subscription::SubscriptionConfig,
 };
 use message::{BackendMessage, FrontendMessage};
+use model::{SubscriptionName, TopicName};
 use tokio::{
     runtime::Builder,
     select,
@@ -39,7 +40,14 @@ impl Backend {
 
                         rt.spawn(async move {
                             let client = create_client().await;
-                            let topics = client.get_topics(None).await.unwrap();
+                            let topics = client
+                                .get_topics(None)
+                                .await
+                                .unwrap()
+                                .into_iter()
+                                .map(TopicName)
+                                .collect();
+
                             back_tx
                                 .send(BackendMessage::TopicsUpdated(topics))
                                 .await
@@ -57,7 +65,7 @@ impl Backend {
                             let _subscription = client
                                 .create_subscription(
                                     &sub_id,
-                                    &topic_id,
+                                    &topic_id.0,
                                     SubscriptionConfig::default(),
                                     None,
                                 )
@@ -65,17 +73,20 @@ impl Backend {
                                 .unwrap();
 
                             back_tx
-                                .send(BackendMessage::SubscriptionCreated(topic_id, sub_id))
+                                .send(BackendMessage::SubscriptionCreated(
+                                    topic_id,
+                                    SubscriptionName(sub_id),
+                                ))
                                 .await
                                 .unwrap();
                         });
                     }
-                    FrontendMessage::Subscribe(sub_id, cancel_token) => {
+                    FrontendMessage::Subscribe(topic_id, sub_id, cancel_token) => {
                         let back_tx = self.back_tx.clone();
 
                         rt.spawn(async move {
                             let client = create_client().await;
-                            let subscription = client.subscription(&sub_id);
+                            let subscription = client.subscription(&sub_id.0);
 
                             let pull_messages_future = async move {
                                 let mut stream = subscription.subscribe(None).await.unwrap();
@@ -85,7 +96,7 @@ impl Backend {
 
                                     back_tx
                                         .send(BackendMessage::MessageReceived(
-                                            sub_id.clone(),
+                                            topic_id.clone(),
                                             message.into(),
                                         ))
                                         .await
