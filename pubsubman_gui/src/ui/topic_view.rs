@@ -9,80 +9,62 @@ use tokio_util::sync::CancellationToken;
 
 use crate::actions::{pull_message_batch, stream_messages};
 
-pub struct TopicViewState {
-    pub selected_topic_name: TopicName,
+#[derive(Default)]
+pub struct MessagesView {
     pub stream_messages_enabled: bool,
     pub stream_messages_cancel_token: Option<CancellationToken>,
 }
 
-impl TopicViewState {
-    pub fn new(selected_topic: TopicName) -> Self {
-        Self {
-            selected_topic_name: selected_topic,
-            stream_messages_enabled: false,
-            stream_messages_cancel_token: None,
-        }
-    }
-}
-
-impl TopicViewState {
+impl MessagesView {
     pub fn show(
         &mut self,
         ui: &mut egui::Ui,
         front_tx: &Sender<FrontendMessage>,
+        selected_topic: &TopicName,
         sub_name: &SubscriptionName,
         messages: &[PubsubMessage],
-    ) -> egui::InnerResponse<()> {
-        egui::CentralPanel::default().show_inside(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.heading("Messages");
+    ) {
+        ui.horizontal(|ui| {
+            ui.heading("Messages");
 
-                ui.add_enabled_ui(!self.stream_messages_enabled, |ui| {
-                    let pull_button = ui.button("Pull");
-                    if pull_button.clicked() {
-                        pull_message_batch(
-                            front_tx,
-                            &self.selected_topic_name,
-                            sub_name,
-                            &CancellationToken::new(),
-                        );
-                    }
-                    pull_button
-                        .on_hover_text(
-                            "Retrieve batch of all undelivered messages on this subscription.",
-                        )
-                        .on_disabled_hover_text("Disable Stream mode to Pull messages.");
-                });
-
-                let stream_mode_toggle =
-                    ui.toggle_value(&mut self.stream_messages_enabled, "Stream");
-
-                if stream_mode_toggle.changed() {
-                    if self.stream_messages_enabled {
-                        let cancel_token = CancellationToken::new();
-
-                        stream_messages(
-                            front_tx,
-                            &self.selected_topic_name,
-                            sub_name,
-                            &cancel_token,
-                        );
-
-                        self.stream_messages_cancel_token = Some(cancel_token);
-                    } else if let Some(cancel_token) = self.stream_messages_cancel_token.take() {
-                        cancel_token.cancel();
-                    }
+            ui.add_enabled_ui(!self.stream_messages_enabled, |ui| {
+                let pull_button = ui.button("Pull");
+                if pull_button.clicked() {
+                    pull_message_batch(
+                        front_tx,
+                        selected_topic,
+                        sub_name,
+                        &CancellationToken::new(),
+                    );
                 }
-
-                stream_mode_toggle.on_hover_text(
-                    "Continuously retrieve messages delivered to this subscription.",
-                );
+                pull_button
+                    .on_hover_text(
+                        "Retrieve batch of all undelivered messages on this subscription.",
+                    )
+                    .on_disabled_hover_text("Disable Stream mode to Pull messages.");
             });
 
-            if !messages.is_empty() {
-                render_messages_table(ui, messages);
+            let stream_mode_toggle = ui.toggle_value(&mut self.stream_messages_enabled, "Stream");
+
+            if stream_mode_toggle.changed() {
+                if self.stream_messages_enabled {
+                    let cancel_token = CancellationToken::new();
+
+                    stream_messages(front_tx, selected_topic, sub_name, &cancel_token);
+
+                    self.stream_messages_cancel_token = Some(cancel_token);
+                } else if let Some(cancel_token) = self.stream_messages_cancel_token.take() {
+                    cancel_token.cancel();
+                }
             }
-        })
+
+            stream_mode_toggle
+                .on_hover_text("Continuously retrieve messages delivered to this subscription.");
+        });
+
+        if !messages.is_empty() {
+            render_messages_table(ui, messages);
+        }
     }
 }
 

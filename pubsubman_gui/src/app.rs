@@ -9,16 +9,17 @@ use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{
     actions::{create_subscription, refresh_topics},
-    ui::{render_topic_name, PublishMessageFormState, TopicViewState},
+    ui::{render_topic_name, MessagesView, PublishMessageFormState},
 };
 
 pub struct App {
     topic_names: Vec<TopicName>,
-    topic_view: Option<TopicViewState>,
+    selected_topic: Option<TopicName>,
     /// The subscriptions this app has created in order to recieve messages.
     subscriptions: HashMap<TopicName, SubscriptionName>,
     messages: HashMap<TopicName, Vec<PubsubMessage>>,
     publish_forms: HashMap<TopicName, PublishMessageFormState>,
+    messages_views: HashMap<TopicName, MessagesView>,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
 }
@@ -37,10 +38,11 @@ impl App {
 
         Self {
             topic_names: vec![],
-            topic_view: None,
+            selected_topic: None,
             subscriptions: HashMap::new(),
             messages: HashMap::new(),
             publish_forms: HashMap::new(),
+            messages_views: HashMap::new(),
             front_tx,
             back_rx,
         }
@@ -102,14 +104,18 @@ impl App {
         }
 
         if let Some(cancel_token) = self
-            .topic_view
+            .selected_topic
             .take()
-            .and_then(|topic_view| topic_view.stream_messages_cancel_token)
+            .and_then(|selected_topic| self.messages_views.get_mut(&selected_topic))
+            .and_then(|messages_view| {
+                messages_view.stream_messages_enabled = false;
+                messages_view.stream_messages_cancel_token.take()
+            })
         {
             cancel_token.cancel();
         }
 
-        self.topic_view = Some(TopicViewState::new(topic_name.clone()));
+        self.selected_topic = Some(topic_name.clone());
 
         if !self.subscriptions.contains_key(topic_name) {
             create_subscription(&self.front_tx, topic_name);
@@ -117,46 +123,52 @@ impl App {
     }
 
     fn is_topic_selected(&self, topic_name: &TopicName) -> bool {
-        self.topic_view
+        self.selected_topic
             .as_ref()
-            .is_some_and(|topic_view| &topic_view.selected_topic_name == topic_name)
+            .is_some_and(|selected_topic| selected_topic == topic_name)
     }
 
     fn render_central_panel(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            match self.topic_view.as_mut() {
-                Some(topic_view) => {
+            match &self.selected_topic {
+                Some(selected_topic) => {
                     egui::TopBottomPanel::top("topic_view_top_panel").show_inside(ui, |ui| {
-                        ui.heading(&topic_view.selected_topic_name.0);
+                        ui.heading(&selected_topic.0);
                     });
 
                     egui::TopBottomPanel::bottom("topic_view_bottom_panel")
                         .exact_height(250.0)
                         .show_inside(ui, |ui| {
                             self.publish_forms
-                                .entry(topic_view.selected_topic_name.clone())
+                                .entry(selected_topic.clone())
                                 .or_default()
                                 .show(ui);
                         });
 
-                    match self.subscriptions.get(&topic_view.selected_topic_name) {
-                        Some(sub_name) => {
-                            topic_view.show(
-                                ui,
-                                &self.front_tx,
-                                sub_name,
-                                self.messages
-                                    .get(&topic_view.selected_topic_name)
-                                    .unwrap_or(&vec![]),
-                            );
+                    egui::CentralPanel::default().show_inside(ui, |ui| {
+                        match self.subscriptions.get(selected_topic) {
+                            Some(sub_name) => {
+                                let messages_view = self
+                                    .messages_views
+                                    .entry(selected_topic.clone())
+                                    .or_default();
+
+                                messages_view.show(
+                                    ui,
+                                    &self.front_tx,
+                                    selected_topic,
+                                    sub_name,
+                                    self.messages.get(selected_topic).unwrap_or(&vec![]),
+                                );
+                            }
+                            None => {
+                                ui.vertical_centered(|ui| {
+                                    ui.allocate_space(ui.available_size() / 2.0);
+                                    ui.spinner();
+                                });
+                            }
                         }
-                        None => {
-                            ui.vertical_centered(|ui| {
-                                ui.allocate_space(ui.available_size() / 2.0);
-                                ui.spinner();
-                            });
-                        }
-                    }
+                    });
                 }
                 None => {
                     ui.vertical_centered(|ui| {
