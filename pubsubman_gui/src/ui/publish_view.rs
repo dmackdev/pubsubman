@@ -9,6 +9,7 @@ use crate::actions::publish_message;
 #[derive(Default)]
 pub struct PublishView {
     data: String,
+    attributes: Vec<(String, String)>,
 }
 
 impl PublishView {
@@ -30,6 +31,62 @@ impl PublishView {
                         .desired_rows(4)
                         .desired_width(250.0),
                 );
+            });
+
+        egui::CollapsingHeader::new("Attributes")
+            .id_source(format!("{}-attributes", selected_topic.0))
+            .default_open(false)
+            .show(ui, |ui| {
+                let mut attr_idx_to_delete = None;
+
+                if !self.attributes.is_empty() {
+                    let table = egui_extras::TableBuilder::new(ui)
+                        .striped(false)
+                        .cell_layout(egui::Layout::centered_and_justified(
+                            egui::Direction::LeftToRight,
+                        ))
+                        .column(egui_extras::Column::exact(100.0))
+                        .column(egui_extras::Column::exact(100.0))
+                        .column(egui_extras::Column::auto());
+
+                    table.body(|mut body| {
+                        for (idx, (id, val)) in self.attributes.iter_mut().enumerate() {
+                            body.row(18.0, |mut row| {
+                                row.col(|ui| {
+                                    ui.add(
+                                        egui::TextEdit::singleline(id)
+                                            .code_editor()
+                                            .desired_width(f32::INFINITY)
+                                            .hint_text("Key"),
+                                    );
+                                });
+
+                                row.col(|ui| {
+                                    ui.add(
+                                        egui::TextEdit::singleline(val)
+                                            .code_editor()
+                                            .desired_width(f32::INFINITY)
+                                            .hint_text("Value"),
+                                    );
+                                });
+
+                                row.col(|ui| {
+                                    if ui.button("✖").clicked() {
+                                        attr_idx_to_delete = Some(idx);
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }
+
+                if let Some(i) = attr_idx_to_delete {
+                    self.attributes.remove(i);
+                }
+
+                if ui.button("➕").clicked() {
+                    self.attributes.push(("".to_string(), "".to_string()));
+                }
             });
 
         if ui.button("Publish").clicked() {
