@@ -183,7 +183,7 @@ impl TemplateApp {
 
                                         tokio::spawn(async move {
                                           front_tx
-                                          .send(FrontendMessage::Subscribe(topic_name, sub_name, cancel_token))
+                                          .send(FrontendMessage::PullMessages(topic_name, sub_name, cancel_token))
                                           .await
                                           .unwrap();
                                         });
@@ -213,7 +213,7 @@ impl TemplateApp {
 
                                           tokio::spawn(async move {
                                             front_tx
-                                            .send(FrontendMessage::Subscribe(topic_name, sub_name, cancel_token))
+                                            .send(FrontendMessage::PullMessages(topic_name, sub_name, cancel_token))
                                             .await
                                             .unwrap();
                                           });
