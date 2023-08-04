@@ -9,7 +9,7 @@ use pubsubman_backend::{
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio_util::sync::CancellationToken;
 
-use crate::topic::Render;
+use crate::ui::render_topic_name;
 
 struct TopicViewState {
     selected_topic_id: TopicName,
@@ -111,7 +111,7 @@ impl TemplateApp {
                     for topic in topics {
                         let is_selected = self.is_topic_selected(&topic);
 
-                        topic.show(ui, is_selected, || self.on_topic_click(&topic));
+                        render_topic_name(ui, &topic, is_selected, || self.on_topic_click(&topic));
                     }
                 });
             });
