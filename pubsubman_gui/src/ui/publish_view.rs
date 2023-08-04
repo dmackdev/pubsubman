@@ -18,7 +18,7 @@ impl PublishView {
         front_tx: &Sender<FrontendMessage>,
         selected_topic: &TopicName,
     ) {
-        ui.heading("Publish");
+        ui.heading("New Message");
 
         ui.label("Data:");
         ui.add(
