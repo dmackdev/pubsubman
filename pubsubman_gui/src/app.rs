@@ -39,7 +39,7 @@ pub struct TemplateApp {
 impl TemplateApp {
     /// Called once before the first frame.
     pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        let (front_tx, front_rx) = tokio::sync::mpsc::channel(2);
+        let (front_tx, front_rx) = tokio::sync::mpsc::channel(10);
         let (back_tx, back_rx) = tokio::sync::mpsc::channel(10);
 
         tokio::spawn(async move {
