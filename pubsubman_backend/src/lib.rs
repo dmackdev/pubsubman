@@ -12,7 +12,7 @@ use tokio::{
 use uuid::Uuid;
 
 pub mod message;
-pub mod pubsub_message;
+pub mod model;
 
 pub struct Backend {
     back_tx: Sender<BackendMessage>,

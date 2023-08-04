@@ -1,6 +1,6 @@
 use tokio_util::sync::CancellationToken;
 
-use crate::pubsub_message::PubsubMessage;
+use crate::model::PubsubMessage;
 
 #[derive(Debug)]
 pub enum FrontendMessage {

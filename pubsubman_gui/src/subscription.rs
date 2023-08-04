@@ -1,4 +1,4 @@
-use pubsubman_backend::pubsub_message::PubsubMessage;
+use pubsubman_backend::model::PubsubMessage;
 
 pub struct Subscription {
     pub id: String,
