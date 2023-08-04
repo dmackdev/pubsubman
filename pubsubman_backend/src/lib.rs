@@ -81,7 +81,7 @@ impl Backend {
                                 .unwrap();
                         });
                     }
-                    FrontendMessage::PullMessages(topic_name, sub_name, cancel_token) => {
+                    FrontendMessage::StreamMessages(topic_name, sub_name, cancel_token) => {
                         let back_tx = self.back_tx.clone();
 
                         rt.spawn(async move {

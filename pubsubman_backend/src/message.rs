@@ -6,7 +6,7 @@ use crate::model::{PubsubMessage, SubscriptionName, TopicName};
 pub enum FrontendMessage {
     RefreshTopicsRequest,
     CreateSubscriptionRequest(TopicName),
-    PullMessages(TopicName, SubscriptionName, CancellationToken),
+    StreamMessages(TopicName, SubscriptionName, CancellationToken),
 }
 
 #[derive(Debug)]

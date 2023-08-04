@@ -7,6 +7,8 @@ use pubsubman_backend::{
 use tokio::sync::mpsc::Sender;
 use tokio_util::sync::CancellationToken;
 
+use crate::actions::{pull_message_batch, stream_messages};
+
 pub struct TopicViewState {
     pub selected_topic_name: TopicName,
     pub stream_messages_enabled: bool,
@@ -38,27 +40,12 @@ impl TopicViewState {
                 ui.add_enabled_ui(!self.stream_messages_enabled, |ui| {
                     let pull_button = ui.button("Pull");
                     if pull_button.clicked() {
-                        let topic_name = self.selected_topic_name.clone();
-                        let sub_name = sub_name.clone();
-                        let front_tx = front_tx.clone();
-                        let cancel_token = CancellationToken::new();
-                        let cancel_token_clone = cancel_token.clone();
-
-                        tokio::spawn(async move {
-                            front_tx
-                                .send(FrontendMessage::PullMessages(
-                                    topic_name,
-                                    sub_name,
-                                    cancel_token,
-                                ))
-                                .await
-                                .unwrap();
-                        });
-
-                        tokio::spawn(async move {
-                            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-                            cancel_token_clone.cancel();
-                        });
+                        pull_message_batch(
+                            &self.selected_topic_name,
+                            sub_name,
+                            front_tx,
+                            &CancellationToken::new(),
+                        );
                     }
                     pull_button
                         .on_hover_text(
@@ -72,24 +59,16 @@ impl TopicViewState {
 
                 if stream_mode_toggle.changed() {
                     if self.stream_messages_enabled {
-                        let topic_name = self.selected_topic_name.clone();
-                        let sub_name = sub_name.clone();
-                        let front_tx = front_tx.clone();
                         let cancel_token = CancellationToken::new();
-                        let cancel_token_clone = cancel_token.clone();
 
-                        tokio::spawn(async move {
-                            front_tx
-                                .send(FrontendMessage::PullMessages(
-                                    topic_name,
-                                    sub_name,
-                                    cancel_token,
-                                ))
-                                .await
-                                .unwrap();
-                        });
+                        stream_messages(
+                            &self.selected_topic_name,
+                            sub_name,
+                            front_tx,
+                            &cancel_token,
+                        );
 
-                        self.stream_messages_cancel_token = Some(cancel_token_clone);
+                        self.stream_messages_cancel_token = Some(cancel_token);
                     } else if let Some(cancel_token) = self.stream_messages_cancel_token.take() {
                         cancel_token.cancel();
                     }
