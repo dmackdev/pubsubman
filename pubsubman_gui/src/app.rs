@@ -9,7 +9,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{
     actions::{create_subscription, refresh_topics},
-    ui::{render_publish_panel, render_topic_name, TopicViewState},
+    ui::{render_topic_name, PublishMessageFormState, TopicViewState},
 };
 
 pub struct TemplateApp {
@@ -18,6 +18,7 @@ pub struct TemplateApp {
     /// The subscriptions this app has created in order to recieve messages.
     subscriptions: HashMap<TopicName, SubscriptionName>,
     messages: HashMap<TopicName, Vec<PubsubMessage>>,
+    publish_forms: HashMap<TopicName, PublishMessageFormState>,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
 }
@@ -39,6 +40,7 @@ impl TemplateApp {
             topic_view: None,
             subscriptions: HashMap::new(),
             messages: HashMap::new(),
+            publish_forms: HashMap::new(),
             front_tx,
             back_rx,
         }
@@ -128,7 +130,10 @@ impl TemplateApp {
                         ui.heading(&topic_view.selected_topic_name.0);
                     });
 
-                    render_publish_panel(ui);
+                    self.publish_forms
+                        .entry(topic_view.selected_topic_name.clone())
+                        .or_default()
+                        .show(ui);
 
                     match self.subscriptions.get(&topic_view.selected_topic_name) {
                         Some(sub_name) => {
