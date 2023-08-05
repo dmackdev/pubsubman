@@ -1,12 +1,13 @@
 use chrono::{DateTime, TimeZone, Utc};
 use google_cloud_pubsub::subscriber::ReceivedMessage;
-use std::str;
+use std::{collections::HashMap, str};
 
 #[derive(Debug)]
 pub struct PubsubMessage {
     pub id: String,
     pub publish_time: Option<DateTime<Utc>>,
     pub data: String,
+    pub attributes: HashMap<String, String>,
 }
 
 impl From<ReceivedMessage> for PubsubMessage {
@@ -26,6 +27,7 @@ impl From<ReceivedMessage> for PubsubMessage {
             id: value.message.message_id,
             publish_time,
             data,
+            attributes: value.message.attributes,
         }
     }
 }
