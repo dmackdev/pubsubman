@@ -26,47 +26,50 @@ impl MessagesView {
         sub_name: &SubscriptionName,
         messages: &[PubsubMessage],
     ) {
-        egui::TopBottomPanel::top("messages_top_panel").show_inside(ui, |ui| {
-            ui.horizontal(|ui| {
-                ui.heading("Messages");
+        egui::TopBottomPanel::top("messages_top_panel")
+            .frame(egui::Frame::side_top_panel(ui.style()).inner_margin(8.0))
+            .show_inside(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.heading("Messages");
 
-                ui.add_enabled_ui(!self.stream_messages_enabled, |ui| {
-                    let pull_button = ui.button("Pull");
-                    if pull_button.clicked() {
-                        pull_message_batch(
-                            front_tx,
-                            selected_topic,
-                            sub_name,
-                            &CancellationToken::new(),
-                        );
+                    ui.add_enabled_ui(!self.stream_messages_enabled, |ui| {
+                        let pull_button = ui.button("Pull");
+                        if pull_button.clicked() {
+                            pull_message_batch(
+                                front_tx,
+                                selected_topic,
+                                sub_name,
+                                &CancellationToken::new(),
+                            );
+                        }
+                        pull_button
+                            .on_hover_text(
+                                "Retrieve batch of all undelivered messages on this subscription.",
+                            )
+                            .on_disabled_hover_text("Disable Stream mode to Pull messages.");
+                    });
+
+                    let stream_mode_toggle =
+                        ui.toggle_value(&mut self.stream_messages_enabled, "Stream");
+
+                    if stream_mode_toggle.changed() {
+                        if self.stream_messages_enabled {
+                            let cancel_token = CancellationToken::new();
+
+                            stream_messages(front_tx, selected_topic, sub_name, &cancel_token);
+
+                            self.stream_messages_cancel_token = Some(cancel_token);
+                        } else if let Some(cancel_token) = self.stream_messages_cancel_token.take()
+                        {
+                            cancel_token.cancel();
+                        }
                     }
-                    pull_button
-                        .on_hover_text(
-                            "Retrieve batch of all undelivered messages on this subscription.",
-                        )
-                        .on_disabled_hover_text("Disable Stream mode to Pull messages.");
+
+                    stream_mode_toggle.on_hover_text(
+                        "Continuously retrieve messages delivered to this subscription.",
+                    );
                 });
-
-                let stream_mode_toggle =
-                    ui.toggle_value(&mut self.stream_messages_enabled, "Stream");
-
-                if stream_mode_toggle.changed() {
-                    if self.stream_messages_enabled {
-                        let cancel_token = CancellationToken::new();
-
-                        stream_messages(front_tx, selected_topic, sub_name, &cancel_token);
-
-                        self.stream_messages_cancel_token = Some(cancel_token);
-                    } else if let Some(cancel_token) = self.stream_messages_cancel_token.take() {
-                        cancel_token.cancel();
-                    }
-                }
-
-                stream_mode_toggle.on_hover_text(
-                    "Continuously retrieve messages delivered to this subscription.",
-                );
             });
-        });
 
         egui::CentralPanel::default()
             .frame(

@@ -131,11 +131,13 @@ impl App {
     fn render_central_panel(&mut self, ctx: &egui::Context) {
         match &self.selected_topic {
             Some(selected_topic) => {
-                egui::TopBottomPanel::top("topic_view_top_panel").show(ctx, |ui| {
-                    ui.vertical_centered(|ui| {
-                        ui.heading(&selected_topic.0);
+                egui::TopBottomPanel::top("topic_view_top_panel")
+                    .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
+                    .show(ctx, |ui| {
+                        ui.vertical_centered(|ui| {
+                            ui.heading(&selected_topic.0);
+                        });
                     });
-                });
 
                 egui::TopBottomPanel::bottom("topic_view_bottom_panel")
                     .resizable(true)
