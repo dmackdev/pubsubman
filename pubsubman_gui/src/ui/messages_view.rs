@@ -119,7 +119,8 @@ fn render_messages_table(ui: &mut egui::Ui, messages: &[PubsubMessage]) {
                             egui::TextEdit::multiline(&mut message.data.clone())
                                 .code_editor()
                                 .interactive(false)
-                                .frame(false),
+                                .frame(false)
+                                .desired_width(f32::INFINITY),
                         );
                     });
                 });
