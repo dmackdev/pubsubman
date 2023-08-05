@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::{DateTime, Local};
 use egui_extras::{Column, TableBuilder};
 use pubsubman_backend::{
@@ -79,6 +81,7 @@ fn render_messages_table(ui: &mut egui::Ui, messages: &[PubsubMessage]) {
         .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
         .column(Column::auto())
         .column(Column::auto())
+        .column(Column::auto())
         .column(Column::remainder())
         .min_scrolled_height(0.0);
 
@@ -90,6 +93,10 @@ fn render_messages_table(ui: &mut egui::Ui, messages: &[PubsubMessage]) {
 
             header.col(|ui| {
                 ui.label("Published at");
+            });
+
+            header.col(|ui| {
+                ui.label("Attributes");
             });
 
             header.col(|ui| {
@@ -115,6 +122,10 @@ fn render_messages_table(ui: &mut egui::Ui, messages: &[PubsubMessage]) {
                     });
 
                     row.col(|ui| {
+                        ui.label(format_attributes(&message.attributes));
+                    });
+
+                    row.col(|ui| {
                         ui.add(
                             egui::TextEdit::multiline(&mut message.data.clone())
                                 .code_editor()
@@ -126,4 +137,19 @@ fn render_messages_table(ui: &mut egui::Ui, messages: &[PubsubMessage]) {
                 });
             }
         });
+}
+
+fn format_attributes(attributes: &HashMap<String, String>) -> String {
+    attributes
+        .iter()
+        .enumerate()
+        .map(|(i, (k, v))| {
+            format!(
+                "{}:{}{}",
+                k,
+                v,
+                (if i == attributes.len() - 1 { "" } else { ", " })
+            )
+        })
+        .collect()
 }
