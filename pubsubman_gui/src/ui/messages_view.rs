@@ -69,7 +69,11 @@ impl MessagesView {
         });
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::central_panel(ui.style()).fill(ui.style().visuals.extreme_bg_color))
+            .frame(
+                egui::Frame::central_panel(ui.style())
+                    .fill(ui.style().visuals.extreme_bg_color)
+                    .inner_margin(16.0),
+            )
             .show_inside(ui, |ui| {
                 if !messages.is_empty() {
                     egui::Frame::none()
