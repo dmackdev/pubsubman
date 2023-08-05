@@ -148,8 +148,13 @@ impl App {
                         ui.allocate_space(ui.available_size());
                     });
 
-                egui::CentralPanel::default().show(ctx, |ui| {
-                    match self.subscriptions.get(selected_topic) {
+                egui::CentralPanel::default()
+                    .frame(
+                        egui::Frame::central_panel(&ctx.style())
+                            .inner_margin(0.0)
+                            .outer_margin(0.0),
+                    )
+                    .show(ctx, |ui| match self.subscriptions.get(selected_topic) {
                         Some(sub_name) => {
                             let messages_view = self
                                 .messages_views
@@ -172,8 +177,7 @@ impl App {
                                 },
                             );
                         }
-                    }
-                });
+                    });
             }
             None => {
                 egui::CentralPanel::default().show(ctx, |ui| {
