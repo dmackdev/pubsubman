@@ -65,7 +65,9 @@ impl MessagesView {
         });
 
         if !messages.is_empty() {
-            render_messages_table(ui, messages);
+            egui::Frame::none().show(ui, |ui| {
+                render_messages_table(ui, messages);
+            });
         }
     }
 }
