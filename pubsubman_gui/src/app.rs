@@ -9,6 +9,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{
     actions::{create_subscription, refresh_topics},
+    settings::Settings,
     ui::{render_topic_name, MessagesView, PublishView},
 };
 
@@ -20,6 +21,7 @@ pub struct App {
     messages: HashMap<TopicName, Vec<PubsubMessage>>,
     publish_views: HashMap<TopicName, PublishView>,
     messages_views: HashMap<TopicName, MessagesView>,
+    settings: Settings,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
 }
@@ -43,6 +45,7 @@ impl App {
             messages: HashMap::new(),
             publish_views: HashMap::new(),
             messages_views: HashMap::new(),
+            settings: Settings::default(),
             front_tx,
             back_rx,
         }
@@ -66,13 +69,31 @@ impl App {
         }
     }
 
-    fn render_top_panel(&self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn render_top_panel(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
                         frame.close();
                     }
+                });
+
+                ui.menu_button("View", |ui| {
+                    ui.horizontal(|ui| {
+                        let button_text = format!(
+                            "{}Show Publish Message Panel",
+                            if self.settings.view.show_publish_message_panel {
+                                "✔ "
+                            } else {
+                                ""
+                            }
+                        );
+
+                        if ui.button(button_text).clicked() {
+                            self.settings.view.show_publish_message_panel =
+                                !self.settings.view.show_publish_message_panel;
+                        }
+                    });
                 });
             });
         });
@@ -139,16 +160,18 @@ impl App {
                         });
                     });
 
-                egui::TopBottomPanel::bottom("topic_view_bottom_panel")
-                    .resizable(true)
-                    .show(ctx, |ui| {
-                        self.publish_views
-                            .entry(selected_topic.clone())
-                            .or_default()
-                            .show(ui, &self.front_tx, selected_topic);
+                if self.settings.view.show_publish_message_panel {
+                    egui::TopBottomPanel::bottom("topic_view_bottom_panel")
+                        .resizable(true)
+                        .show(ctx, |ui| {
+                            self.publish_views
+                                .entry(selected_topic.clone())
+                                .or_default()
+                                .show(ui, &self.front_tx, selected_topic);
 
-                        ui.allocate_space(ui.available_size());
-                    });
+                            ui.allocate_space(ui.available_size());
+                        });
+                }
 
                 egui::CentralPanel::default()
                     .frame(

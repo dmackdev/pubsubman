@@ -2,5 +2,6 @@
 
 mod actions;
 mod app;
+mod settings;
 mod ui;
 pub use app::App;
