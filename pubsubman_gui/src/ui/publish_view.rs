@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use pubsubman_backend::{
     message::FrontendMessage,
     model::{PubsubMessageToPublish, TopicName},
@@ -97,6 +99,9 @@ impl PublishView {
 
 impl From<&mut PublishView> for PubsubMessageToPublish {
     fn from(val: &mut PublishView) -> Self {
-        Self::new(val.data.clone())
+        Self::new(
+            val.data.clone(),
+            HashMap::from_iter(val.attributes.clone().into_iter()),
+        )
     }
 }
