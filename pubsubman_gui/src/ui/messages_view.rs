@@ -78,7 +78,13 @@ impl MessagesView {
                     .inner_margin(16.0),
             )
             .show_inside(ui, |ui| {
-                if !messages.is_empty() {
+                if messages.is_empty() {
+                    ui.allocate_space(ui.available_size() / 2.0);
+                    ui.vertical_centered(|ui| {
+                        ui.heading("No messages received for this Topic.");
+                        ui.label("Pull or Stream new messages to retrieve the latest.");
+                    });
+                } else {
                     egui::Frame::none()
                         .fill(ui.style().visuals.panel_fill)
                         .inner_margin(egui::Vec2::new(6.0, 3.0))
