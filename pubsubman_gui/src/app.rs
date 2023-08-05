@@ -34,7 +34,7 @@ impl App {
         let (back_tx, back_rx) = tokio::sync::mpsc::channel(10);
 
         tokio::spawn(async move {
-            Backend::new(back_tx, front_rx).await.init();
+            Backend::new(back_tx, front_rx).init();
         });
 
         refresh_topics(&front_tx);

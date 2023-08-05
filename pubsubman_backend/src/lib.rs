@@ -21,7 +21,7 @@ pub struct Backend {
 }
 
 impl Backend {
-    pub async fn new(back_tx: Sender<BackendMessage>, front_rx: Receiver<FrontendMessage>) -> Self {
+    pub fn new(back_tx: Sender<BackendMessage>, front_rx: Receiver<FrontendMessage>) -> Self {
         Self { back_tx, front_rx }
     }
 
