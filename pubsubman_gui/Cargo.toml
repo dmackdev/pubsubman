@@ -18,8 +18,7 @@ eframe = { version = "0.22.0", default-features = false, features = [
 ] }
 log = "0.4"
 
-# You only need serde if you want app persistence:
-serde = { version = "1", features = ["derive"] }
+serde = { workspace = true }
 
 env_logger = "0.10"
 tokio = { workspace = true }

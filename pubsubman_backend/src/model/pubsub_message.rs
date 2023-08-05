@@ -2,7 +2,7 @@ use chrono::{DateTime, TimeZone, Utc};
 use google_cloud_pubsub::subscriber::ReceivedMessage;
 use std::{collections::HashMap, str};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct PubsubMessage {
     pub id: String,
     pub publish_time: Option<DateTime<Utc>>,

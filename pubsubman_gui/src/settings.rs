@@ -1,8 +1,9 @@
-#[derive(Default)]
+#[derive(Default, Clone, serde::Deserialize, serde::Serialize)]
 pub struct Settings {
     pub view: ViewSettings,
 }
 
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct ViewSettings {
     pub show_publish_message_panel: bool,
 }

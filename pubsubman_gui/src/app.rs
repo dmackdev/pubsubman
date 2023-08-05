@@ -9,6 +9,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{
     actions::{create_subscription, refresh_topics},
+    save_state::SaveState,
     settings::Settings,
     ui::{render_topic_name, MessagesView, PublishView},
 };
@@ -28,7 +29,7 @@ pub struct App {
 
 impl App {
     /// Called once before the first frame.
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let (front_tx, front_rx) = tokio::sync::mpsc::channel(10);
         let (back_tx, back_rx) = tokio::sync::mpsc::channel(10);
 
@@ -38,14 +39,19 @@ impl App {
 
         refresh_topics(&front_tx);
 
+        let SaveState { messages, settings } = cc
+            .storage
+            .and_then(|storage| eframe::get_value::<SaveState>(storage, eframe::APP_KEY))
+            .unwrap_or_default();
+
         Self {
             topic_names: vec![],
             selected_topic: None,
-            subscriptions: HashMap::new(),
-            messages: HashMap::new(),
-            publish_views: HashMap::new(),
-            messages_views: HashMap::new(),
-            settings: Settings::default(),
+            subscriptions: HashMap::default(),
+            messages,
+            publish_views: HashMap::default(),
+            messages_views: HashMap::default(),
+            settings,
             front_tx,
             back_rx,
         }
@@ -225,5 +231,18 @@ impl eframe::App for App {
         self.render_top_panel(ctx, frame);
         self.render_topics_panel(ctx);
         self.render_central_panel(ctx);
+    }
+
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value::<SaveState>(storage, eframe::APP_KEY, &self.into());
+    }
+}
+
+impl From<&mut App> for SaveState {
+    fn from(value: &mut App) -> Self {
+        Self {
+            messages: value.messages.clone(),
+            settings: value.settings.clone(),
+        }
     }
 }

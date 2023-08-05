@@ -10,6 +10,7 @@ chrono = { workspace = true }
 futures-util = "0.3.28"
 google-cloud-googleapis = "0.10.0"
 google-cloud-pubsub = "0.18.0"
+serde = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 

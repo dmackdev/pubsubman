@@ -2,6 +2,7 @@
 
 mod actions;
 mod app;
+mod save_state;
 mod settings;
 mod ui;
 pub use app::App;
