@@ -87,6 +87,7 @@ impl App {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
+                        ui.close_menu();
                         frame.close();
                     }
                 });
