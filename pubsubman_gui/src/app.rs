@@ -12,7 +12,7 @@ use crate::{
     column_settings::ColumnSettings,
     save_state::SaveState,
     settings::Settings,
-    ui::{render_topic_name, MessagesView, PublishView},
+    ui::{render_topic_name, MessagesView, Modal, PublishView},
 };
 
 pub struct App {
@@ -247,13 +247,11 @@ impl App {
             return;
         }
 
-        egui::Window::new("Would you like to clean up Subscriptions?")
-            .anchor(egui::Align2::CENTER_CENTER, (0.0, 0.0))
-            .collapsible(false)
-            .resizable(false)
-            .movable(false)
-            .show(ctx, |ui| match self.subscription_cleanup_state {
+        Modal::new("exit_modal", "Confirm Exit").show(ctx, |ui| {
+            match self.subscription_cleanup_state {
                 SubscriptionCleanupState::Idle => {
+                    ui.label("Clean up Subscriptions?");
+
                     ui.horizontal(|ui| {
                         if ui.button("Yes").clicked() {
                             let sub_names = self.subscriptions.values().cloned().collect();
@@ -278,7 +276,8 @@ impl App {
                     self.can_close = true;
                     frame.close();
                 }
-            });
+            }
+        });
     }
 }
 
