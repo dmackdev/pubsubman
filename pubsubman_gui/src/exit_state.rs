@@ -2,8 +2,8 @@ use crate::ui::Modal;
 
 #[derive(Default)]
 pub struct ExitState {
-    show_close_dialog: bool,
-    can_close: bool,
+    show_exit_dialogue: bool,
+    can_exit: bool,
     pub subscription_cleanup_state: SubscriptionCleanupState,
 }
 
@@ -22,7 +22,7 @@ impl ExitState {
         frame: &mut eframe::Frame,
         cleanup_subscriptions: impl FnOnce(),
     ) {
-        if !self.show_close_dialog {
+        if !self.show_exit_dialogue {
             return;
         }
 
@@ -38,12 +38,12 @@ impl ExitState {
                         }
 
                         if ui.button("No").clicked() {
-                            self.can_close = true;
+                            self.can_exit = true;
                             frame.close();
                         }
 
                         if ui.button("Cancel").clicked() {
-                            self.show_close_dialog = false;
+                            self.show_exit_dialogue = false;
                         }
                     });
                 }
@@ -51,7 +51,7 @@ impl ExitState {
                     ui.label("Deleting Subscriptions...");
                 }
                 SubscriptionCleanupState::Complete => {
-                    self.can_close = true;
+                    self.can_exit = true;
                     frame.close();
                 }
             }
@@ -59,7 +59,7 @@ impl ExitState {
     }
 
     pub fn on_close_event(&mut self) -> bool {
-        self.show_close_dialog = true;
-        self.can_close
+        self.show_exit_dialogue = true;
+        self.can_exit
     }
 }
