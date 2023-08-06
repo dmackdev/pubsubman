@@ -21,7 +21,7 @@ impl PublishView {
         front_tx: &Sender<FrontendMessage>,
         selected_topic: &TopicName,
     ) {
-        ui.heading("New Message");
+        ui.heading("Publish New Message");
 
         egui::CollapsingHeader::new("Data")
             .id_source(format!("{}-data", selected_topic.0))
