@@ -35,7 +35,7 @@ impl App {
         let (front_tx, front_rx) = tokio::sync::mpsc::channel(10);
         let (back_tx, back_rx) = tokio::sync::mpsc::channel(10);
 
-        tokio::spawn(async move {
+        std::thread::spawn(|| {
             Backend::new(back_tx, front_rx).init();
         });
 
