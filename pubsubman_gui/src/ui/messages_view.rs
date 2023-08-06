@@ -9,14 +9,16 @@ use pubsubman_backend::{
 use tokio::sync::mpsc::Sender;
 use tokio_util::sync::CancellationToken;
 
-use crate::actions::{pull_message_batch, stream_messages};
+use crate::{
+    actions::{pull_message_batch, stream_messages},
+    column_settings::ColumnSettings,
+};
 
 #[derive(Default)]
 pub struct MessagesView {
     pub stream_messages_enabled: bool,
     pub stream_messages_cancel_token: Option<CancellationToken>,
     pub search_query: String,
-    pub columns_settings: ColumnsSettings,
 }
 
 impl MessagesView {
@@ -26,6 +28,7 @@ impl MessagesView {
         front_tx: &Sender<FrontendMessage>,
         selected_topic: &TopicName,
         sub_name: &SubscriptionName,
+        column_settings: &mut ColumnSettings,
         messages: &[PubsubMessage],
     ) {
         egui::TopBottomPanel::top("messages_top_panel")
@@ -97,9 +100,7 @@ impl MessagesView {
                             );
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
-                                |ui| {
-                                    self.columns_settings.show(ui);
-                                },
+                                |ui| column_settings.show(ui),
                             );
                         });
                     });
@@ -116,7 +117,7 @@ impl MessagesView {
                         .outer_margin(outer_margin)
                         .rounding(ui.style().visuals.window_rounding)
                         .show(ui, |ui| {
-                            render_messages_table(ui, &self.columns_settings, messages);
+                            render_messages_table(ui, column_settings, messages);
                         });
                 }
             });
@@ -127,7 +128,7 @@ const ROW_HEIGHT_PADDING: f32 = 4.0;
 
 fn render_messages_table(
     ui: &mut egui::Ui,
-    columns_settings: &ColumnsSettings,
+    column_settings: &ColumnSettings,
     messages: &[PubsubMessage],
 ) {
     let text_height = ui.text_style_height(&egui::TextStyle::Monospace);
@@ -139,11 +140,11 @@ fn render_messages_table(
         .min_scrolled_height(0.0)
         .auto_shrink([false, true]);
 
-    let ColumnsSettings {
+    let ColumnSettings {
         show_id,
         show_published_at,
         show_attributes,
-    } = *columns_settings;
+    } = *column_settings;
 
     for col_enabled in [show_id, show_published_at, show_attributes] {
         if col_enabled {
@@ -230,39 +231,4 @@ fn format_attributes(attributes: &HashMap<String, String>) -> String {
             )
         })
         .collect()
-}
-
-pub struct ColumnsSettings {
-    show_id: bool,
-    show_published_at: bool,
-    show_attributes: bool,
-}
-
-impl Default for ColumnsSettings {
-    fn default() -> Self {
-        Self {
-            show_id: true,
-            show_published_at: true,
-            show_attributes: true,
-        }
-    }
-}
-
-impl ColumnsSettings {
-    fn show(&mut self, ui: &mut egui::Ui) {
-        ui.visuals_mut().widgets.inactive.weak_bg_fill = egui::Color32::from_gray(32);
-        ui.menu_button("Columns ⏷", |ui| {
-            ui.horizontal(|ui| {
-                ui.checkbox(&mut self.show_id, " ID");
-            });
-
-            ui.horizontal(|ui| {
-                ui.checkbox(&mut self.show_published_at, " Published at");
-            });
-
-            ui.horizontal(|ui| {
-                ui.checkbox(&mut self.show_attributes, " Attributes");
-            });
-        });
-    }
 }

@@ -2,6 +2,7 @@
 
 mod actions;
 mod app;
+mod column_settings;
 mod save_state;
 mod settings;
 mod ui;

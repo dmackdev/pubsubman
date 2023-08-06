@@ -9,6 +9,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{
     actions::{create_subscription, refresh_topics},
+    column_settings::ColumnSettings,
     save_state::SaveState,
     settings::Settings,
     ui::{render_topic_name, MessagesView, PublishView},
@@ -22,6 +23,7 @@ pub struct App {
     messages: HashMap<TopicName, Vec<PubsubMessage>>,
     publish_views: HashMap<TopicName, PublishView>,
     messages_views: HashMap<TopicName, MessagesView>,
+    column_settings: HashMap<TopicName, ColumnSettings>,
     settings: Settings,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
@@ -39,7 +41,11 @@ impl App {
 
         refresh_topics(&front_tx);
 
-        let SaveState { messages, settings } = cc
+        let SaveState {
+            messages,
+            column_settings,
+            settings,
+        } = cc
             .storage
             .and_then(|storage| eframe::get_value::<SaveState>(storage, eframe::APP_KEY))
             .unwrap_or_default();
@@ -51,6 +57,7 @@ impl App {
             messages,
             publish_views: HashMap::default(),
             messages_views: HashMap::default(),
+            column_settings,
             settings,
             front_tx,
             back_rx,
@@ -188,6 +195,9 @@ impl App {
                                 &self.front_tx,
                                 selected_topic,
                                 sub_name,
+                                self.column_settings
+                                    .entry(selected_topic.clone())
+                                    .or_default(),
                                 self.messages.get(selected_topic).unwrap_or(&vec![]),
                             );
                         }
@@ -233,6 +243,7 @@ impl From<&mut App> for SaveState {
     fn from(value: &mut App) -> Self {
         Self {
             messages: value.messages.clone(),
+            column_settings: value.column_settings.clone(),
             settings: value.settings.clone(),
         }
     }
