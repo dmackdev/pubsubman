@@ -8,7 +8,7 @@ use pubsubman_backend::{
 use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{
-    actions::{create_subscription, refresh_topics},
+    actions::{create_subscription, delete_subscriptions, refresh_topics},
     column_settings::ColumnSettings,
     save_state::SaveState,
     settings::Settings,
@@ -27,6 +27,17 @@ pub struct App {
     settings: Settings,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
+
+    show_close_dialog: bool,
+    can_close: bool,
+    subscription_cleanup_state: SubscriptionCleanupState,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SubscriptionCleanupState {
+    Idle,
+    Waiting,
+    Complete,
 }
 
 impl App {
@@ -61,6 +72,9 @@ impl App {
             settings,
             front_tx,
             back_rx,
+            show_close_dialog: false,
+            can_close: false,
+            subscription_cleanup_state: SubscriptionCleanupState::Idle,
         }
     }
 
@@ -76,6 +90,9 @@ impl App {
                 }
                 BackendMessage::MessageReceived(topic_name, message) => {
                     self.messages.entry(topic_name).or_default().push(message);
+                }
+                BackendMessage::SubscriptionsDeleted => {
+                    self.subscription_cleanup_state = SubscriptionCleanupState::Complete;
                 }
             },
             Err(_err) => {} //println!("{:?}", err),
@@ -224,6 +241,45 @@ impl App {
             }
         };
     }
+
+    fn render_close_dialog(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        if !self.show_close_dialog {
+            return;
+        }
+
+        egui::Window::new("Would you like to clean up Subscriptions?")
+            .anchor(egui::Align2::CENTER_CENTER, (0.0, 0.0))
+            .collapsible(false)
+            .resizable(false)
+            .movable(false)
+            .show(ctx, |ui| match self.subscription_cleanup_state {
+                SubscriptionCleanupState::Idle => {
+                    ui.horizontal(|ui| {
+                        if ui.button("Yes").clicked() {
+                            let sub_names = self.subscriptions.values().cloned().collect();
+                            delete_subscriptions(&self.front_tx, sub_names);
+                            self.subscription_cleanup_state = SubscriptionCleanupState::Waiting;
+                        }
+
+                        if ui.button("No").clicked() {
+                            self.can_close = true;
+                            frame.close();
+                        }
+
+                        if ui.button("Cancel").clicked() {
+                            self.show_close_dialog = false;
+                        }
+                    });
+                }
+                SubscriptionCleanupState::Waiting => {
+                    ui.label("Deleting Subscriptions...");
+                }
+                SubscriptionCleanupState::Complete => {
+                    self.can_close = true;
+                    frame.close();
+                }
+            });
+    }
 }
 
 impl eframe::App for App {
@@ -233,10 +289,16 @@ impl eframe::App for App {
         self.render_top_panel(ctx, frame);
         self.render_topics_panel(ctx);
         self.render_central_panel(ctx);
+        self.render_close_dialog(ctx, frame);
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value::<SaveState>(storage, eframe::APP_KEY, &self.into());
+    }
+
+    fn on_close_event(&mut self) -> bool {
+        self.show_close_dialog = true;
+        self.can_close
     }
 }
 

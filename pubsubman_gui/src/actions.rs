@@ -24,6 +24,16 @@ pub fn create_subscription(front_tx: &Sender<FrontendMessage>, topic_name: &Topi
     });
 }
 
+pub fn delete_subscriptions(front_tx: &Sender<FrontendMessage>, sub_names: Vec<SubscriptionName>) {
+    let front_tx = front_tx.to_owned();
+
+    tokio::spawn(async move {
+        let _ = front_tx
+            .send(FrontendMessage::DeleteSubscriptions(sub_names))
+            .await;
+    });
+}
+
 pub fn pull_message_batch(
     front_tx: &Sender<FrontendMessage>,
     topic_name: &TopicName,

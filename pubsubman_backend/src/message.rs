@@ -6,6 +6,7 @@ use crate::model::{PubsubMessage, PubsubMessageToPublish, SubscriptionName, Topi
 pub enum FrontendMessage {
     RefreshTopicsRequest,
     CreateSubscriptionRequest(TopicName),
+    DeleteSubscriptions(Vec<SubscriptionName>),
     StreamMessages(TopicName, SubscriptionName, CancellationToken),
     PublishMessage(TopicName, PubsubMessageToPublish),
 }
@@ -15,4 +16,5 @@ pub enum BackendMessage {
     TopicsUpdated(Vec<TopicName>),
     SubscriptionCreated(TopicName, SubscriptionName),
     MessageReceived(TopicName, PubsubMessage),
+    SubscriptionsDeleted,
 }
