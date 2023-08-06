@@ -33,58 +33,64 @@ impl ExitState {
             return;
         }
 
-        Modal::new("exit_modal", "Confirm Quit").show(ctx, |ui| {
-            match self.subscription_cleanup_state {
-                SubscriptionCleanupState::Idle => {
-                    egui::Frame::none().inner_margin(MARGIN).show(ui, |ui| {
-                        ui.allocate_ui_with_layout(
-                            egui::vec2(350.0, 150.0),
-                            egui::Layout::top_down(egui::Align::Center),
-                            |ui| {
-                                ui.label(
-                                    "Pubsubman created Subscriptions in order to receive messages. Do you want to delete these Subscriptions before you quit?",
-                                );
+        let title = if self.subscription_cleanup_state == SubscriptionCleanupState::Waiting {
+            "Deleting Subscriptions..."
+        } else {
+            "Confirm Quit"
+        };
 
-                                ui.add_space(20.0);
+        Modal::new("exit_modal", title).show(ctx, |ui| {
+            egui::Frame::none().inner_margin(MARGIN).show(ui, |ui| {
+                ui.allocate_ui_with_layout(
+                    egui::vec2(350.0, 150.0),
+                    egui::Layout::top_down(egui::Align::Center),
+                    |ui| match self.subscription_cleanup_state {
+                        SubscriptionCleanupState::Idle => {
+                            self.render_dialog_contents(ui, cleanup_subscriptions, frame);
+                        }
+                        SubscriptionCleanupState::Waiting => {
+                            ui.spinner();
+                        }
+                        SubscriptionCleanupState::Complete => {
+                            self.can_exit = true;
+                            frame.close();
+                        }
+                    },
+                )
+            });
+        });
+    }
 
-                                ui.horizontal(|ui| {
-                                    ui.with_layout(
-                                        egui::Layout::left_to_right(egui::Align::Center),
-                                        |ui| {
-                                            if ui.button("Delete Subscriptions").clicked() {
-                                                cleanup_subscriptions();
-                                                self.subscription_cleanup_state =
-                                                    SubscriptionCleanupState::Waiting;
-                                            }
+    fn render_dialog_contents(
+        &mut self,
+        ui: &mut egui::Ui,
+        cleanup_subscriptions: impl FnOnce(),
+        frame: &mut eframe::Frame,
+    ) {
+        ui.label(
+            "Pubsubman created Subscriptions in order to receive messages. Do you want to delete these Subscriptions before you quit?",
+        );
 
-                                            if ui.button("Skip").clicked() {
-                                                self.can_exit = true;
-                                                frame.close();
-                                            }
+        ui.add_space(20.0);
 
-                                            ui.with_layout(
-                                                egui::Layout::right_to_left(egui::Align::Center),
-                                                |ui| {
-                                                    if ui.button("Cancel").clicked() {
-                                                        self.show_exit_dialogue = false;
-                                                    }
-                                                },
-                                            );
-                                        },
-                                    );
-                                });
-                            },
-                        );
-                    });
+        ui.horizontal(|ui| {
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                if ui.button("Delete Subscriptions").clicked() {
+                    cleanup_subscriptions();
+                    self.subscription_cleanup_state = SubscriptionCleanupState::Waiting;
                 }
-                SubscriptionCleanupState::Waiting => {
-                    ui.label("Deleting Subscriptions...");
-                }
-                SubscriptionCleanupState::Complete => {
+
+                if ui.button("Skip").clicked() {
                     self.can_exit = true;
                     frame.close();
                 }
-            }
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.button("Cancel").clicked() {
+                        self.show_exit_dialogue = false;
+                    }
+                });
+            });
         });
     }
 
