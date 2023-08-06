@@ -31,6 +31,11 @@ impl MessagesView {
         column_settings: &mut ColumnSettings,
         messages: &[PubsubMessage],
     ) {
+        let search_query = self.search_query.to_ascii_lowercase();
+        let filtered_messages = messages
+            .iter()
+            .filter(|msg| msg.data.to_ascii_lowercase().contains(&search_query));
+
         egui::TopBottomPanel::top("messages_top_panel")
             .frame(egui::Frame::side_top_panel(ui.style()).inner_margin(8.0))
             .show_inside(ui, |ui| {
@@ -117,7 +122,7 @@ impl MessagesView {
                         .outer_margin(outer_margin)
                         .rounding(ui.style().visuals.window_rounding)
                         .show(ui, |ui| {
-                            render_messages_table(ui, column_settings, messages);
+                            render_messages_table(ui, column_settings, filtered_messages);
                         });
                 }
             });
@@ -126,11 +131,10 @@ impl MessagesView {
 
 const ROW_HEIGHT_PADDING: f32 = 4.0;
 
-fn render_messages_table(
-    ui: &mut egui::Ui,
-    column_settings: &ColumnSettings,
-    messages: &[PubsubMessage],
-) {
+fn render_messages_table<'a, I>(ui: &mut egui::Ui, column_settings: &ColumnSettings, messages: I)
+where
+    I: Iterator<Item = &'a PubsubMessage>,
+{
     let text_height = ui.text_style_height(&egui::TextStyle::Monospace);
 
     let mut table = TableBuilder::new(ui)
