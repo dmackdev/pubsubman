@@ -103,6 +103,13 @@ impl MessagesView {
                                     .desired_width(125.0)
                                     .hint_text("Search"),
                             );
+
+                            ui.visuals_mut().widgets.inactive.weak_bg_fill =
+                                egui::Color32::from_gray(32);
+                            if ui.button("✖").clicked() {
+                                self.search_query.clear();
+                            }
+
                             ui.with_layout(
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| column_settings.show(ui),
