@@ -10,9 +10,10 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use crate::{
     actions::{create_subscription, delete_subscriptions, refresh_topics},
     column_settings::ColumnSettings,
+    exit_state::{ExitState, SubscriptionCleanupState},
     save_state::SaveState,
     settings::Settings,
-    ui::{render_topic_name, MessagesView, Modal, PublishView},
+    ui::{render_topic_name, MessagesView, PublishView},
 };
 
 pub struct App {
@@ -25,19 +26,9 @@ pub struct App {
     messages_views: HashMap<TopicName, MessagesView>,
     column_settings: HashMap<TopicName, ColumnSettings>,
     settings: Settings,
+    exit_state: ExitState,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
-
-    show_close_dialog: bool,
-    can_close: bool,
-    subscription_cleanup_state: SubscriptionCleanupState,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum SubscriptionCleanupState {
-    Idle,
-    Waiting,
-    Complete,
 }
 
 impl App {
@@ -70,11 +61,9 @@ impl App {
             messages_views: HashMap::default(),
             column_settings,
             settings,
+            exit_state: ExitState::default(),
             front_tx,
             back_rx,
-            show_close_dialog: false,
-            can_close: false,
-            subscription_cleanup_state: SubscriptionCleanupState::Idle,
         }
     }
 
@@ -92,7 +81,7 @@ impl App {
                     self.messages.entry(topic_name).or_default().push(message);
                 }
                 BackendMessage::SubscriptionsDeleted => {
-                    self.subscription_cleanup_state = SubscriptionCleanupState::Complete;
+                    self.exit_state.subscription_cleanup_state = SubscriptionCleanupState::Complete;
                 }
             },
             Err(_err) => {} //println!("{:?}", err),
@@ -243,41 +232,11 @@ impl App {
     }
 
     fn render_close_dialog(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        if !self.show_close_dialog {
-            return;
-        }
-
-        Modal::new("exit_modal", "Confirm Exit").show(ctx, |ui| {
-            match self.subscription_cleanup_state {
-                SubscriptionCleanupState::Idle => {
-                    ui.label("Clean up Subscriptions?");
-
-                    ui.horizontal(|ui| {
-                        if ui.button("Yes").clicked() {
-                            let sub_names = self.subscriptions.values().cloned().collect();
-                            delete_subscriptions(&self.front_tx, sub_names);
-                            self.subscription_cleanup_state = SubscriptionCleanupState::Waiting;
-                        }
-
-                        if ui.button("No").clicked() {
-                            self.can_close = true;
-                            frame.close();
-                        }
-
-                        if ui.button("Cancel").clicked() {
-                            self.show_close_dialog = false;
-                        }
-                    });
-                }
-                SubscriptionCleanupState::Waiting => {
-                    ui.label("Deleting Subscriptions...");
-                }
-                SubscriptionCleanupState::Complete => {
-                    self.can_close = true;
-                    frame.close();
-                }
-            }
-        });
+        let cleanup_subscriptions = || {
+            let sub_names = self.subscriptions.values().cloned().collect();
+            delete_subscriptions(&self.front_tx, sub_names);
+        };
+        self.exit_state.show(ctx, frame, cleanup_subscriptions)
     }
 }
 
@@ -296,8 +255,7 @@ impl eframe::App for App {
     }
 
     fn on_close_event(&mut self) -> bool {
-        self.show_close_dialog = true;
-        self.can_close
+        self.exit_state.on_close_event()
     }
 }
 
