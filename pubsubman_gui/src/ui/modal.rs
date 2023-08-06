@@ -25,7 +25,7 @@ impl<'a> Modal<'a> {
                 ui.painter().rect_filled(
                     screen_rect,
                     egui::Rounding::none(),
-                    egui::Color32::from_black_alpha(75),
+                    egui::Color32::from_rgba_premultiplied(0, 0, 0, 150),
                 );
             });
 
