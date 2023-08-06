@@ -86,19 +86,10 @@ impl App {
 
                 ui.menu_button("View", |ui| {
                     ui.horizontal(|ui| {
-                        let button_text = format!(
-                            "{}Show Publish Message Panel",
-                            if self.settings.view.show_publish_message_panel {
-                                "✔ "
-                            } else {
-                                ""
-                            }
+                        ui.checkbox(
+                            &mut self.settings.view.show_publish_message_panel,
+                            " Publish Message Panel",
                         );
-
-                        if ui.button(button_text).clicked() {
-                            self.settings.view.show_publish_message_panel =
-                                !self.settings.view.show_publish_message_panel;
-                        }
                     });
                 });
             });
