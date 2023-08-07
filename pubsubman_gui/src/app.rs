@@ -181,6 +181,7 @@ impl App {
 
                 egui::TopBottomPanel::bottom("topic_view_bottom_panel")
                     .resizable(true)
+                    .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
                     .show_animated(
                         ctx,
                         self.memory.settings.view.show_publish_message_panel,

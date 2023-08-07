@@ -91,6 +91,8 @@ impl PublishView {
                 }
             });
 
+        ui.add_space(8.0);
+
         if ui.button("Publish").clicked() {
             publish_message(front_tx, selected_topic, self.into())
         }
