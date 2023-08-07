@@ -89,14 +89,18 @@ impl Backend {
                             futures.push(async move {
                                 let client = create_client().await;
                                 let subscription = client.subscription(&sub_name.0);
-                                let _ = subscription.delete(None).await;
+
+                                match subscription.delete(None).await {
+                                    Ok(_) => Ok(sub_name),
+                                    Err(_) => Err(sub_name),
+                                }
                             });
                         }
 
-                        futures::future::join_all(futures).await;
+                        let results = futures::future::join_all(futures).await;
 
                         back_tx
-                            .send(BackendMessage::SubscriptionsDeleted)
+                            .send(BackendMessage::SubscriptionsDeleted(results))
                             .await
                             .unwrap();
                     });

@@ -16,5 +16,5 @@ pub enum BackendMessage {
     TopicsUpdated(Vec<TopicName>),
     SubscriptionCreated(TopicName, SubscriptionName),
     MessageReceived(TopicName, PubsubMessage),
-    SubscriptionsDeleted,
+    SubscriptionsDeleted(Vec<Result<SubscriptionName, SubscriptionName>>),
 }

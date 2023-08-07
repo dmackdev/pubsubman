@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use pubsubman_backend::{
     message::{BackendMessage, FrontendMessage},
@@ -80,7 +80,13 @@ impl App {
                 BackendMessage::MessageReceived(topic_name, message) => {
                     self.messages.entry(topic_name).or_default().push(message);
                 }
-                BackendMessage::SubscriptionsDeleted => {
+                BackendMessage::SubscriptionsDeleted(results) => {
+                    let successfully_deleted: HashSet<SubscriptionName> =
+                        results.into_iter().filter_map(|s| s.ok()).collect();
+
+                    self.subscriptions
+                        .retain(|_, sub_name| !successfully_deleted.contains(sub_name));
+
                     self.exit_state.subscription_cleanup_state = SubscriptionCleanupState::Complete;
                 }
             },
