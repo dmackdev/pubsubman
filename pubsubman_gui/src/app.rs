@@ -18,6 +18,8 @@ use crate::{
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 struct Memory {
     pub messages: HashMap<TopicName, Vec<PubsubMessage>>,
+    /// The subscriptions this app has created in order to recieve messages.
+    subscriptions: HashMap<TopicName, SubscriptionName>,
     pub column_settings: HashMap<TopicName, ColumnSettings>,
     pub settings: Settings,
 }
@@ -25,8 +27,6 @@ struct Memory {
 pub struct App {
     topic_names: Vec<TopicName>,
     selected_topic: Option<TopicName>,
-    /// The subscriptions this app has created in order to recieve messages.
-    subscriptions: HashMap<TopicName, SubscriptionName>,
     publish_views: HashMap<TopicName, PublishView>,
     messages_views: HashMap<TopicName, MessagesView>,
     exit_state: ExitState,
@@ -55,7 +55,6 @@ impl App {
         Self {
             topic_names: vec![],
             selected_topic: None,
-            subscriptions: HashMap::default(),
             publish_views: HashMap::default(),
             messages_views: HashMap::default(),
             exit_state: ExitState::default(),
@@ -73,7 +72,7 @@ impl App {
                     refresh_topics(&self.front_tx);
                 }
                 BackendMessage::SubscriptionCreated(topic_name, sub_name) => {
-                    self.subscriptions.insert(topic_name, sub_name);
+                    self.memory.subscriptions.insert(topic_name, sub_name);
                 }
                 BackendMessage::MessageReceived(topic_name, message) => {
                     self.memory
@@ -86,7 +85,8 @@ impl App {
                     let successfully_deleted: HashSet<SubscriptionName> =
                         results.into_iter().filter_map(|s| s.ok()).collect();
 
-                    self.subscriptions
+                    self.memory
+                        .subscriptions
                         .retain(|_, sub_name| !successfully_deleted.contains(sub_name));
 
                     self.exit_state.subscription_cleanup_state = SubscriptionCleanupState::Complete;
@@ -157,7 +157,7 @@ impl App {
 
         self.selected_topic = Some(topic_name.clone());
 
-        if !self.subscriptions.contains_key(topic_name) {
+        if !self.memory.subscriptions.contains_key(topic_name) {
             create_subscription(&self.front_tx, topic_name);
         }
     }
@@ -200,32 +200,36 @@ impl App {
                             .inner_margin(0.0)
                             .outer_margin(0.0),
                     )
-                    .show(ctx, |ui| match self.subscriptions.get(selected_topic) {
-                        Some(sub_name) => {
-                            let messages_view = self
-                                .messages_views
-                                .entry(selected_topic.clone())
-                                .or_default();
-
-                            messages_view.show(
-                                ui,
-                                &self.front_tx,
-                                selected_topic,
-                                sub_name,
-                                self.memory
-                                    .column_settings
+                    .show(ctx, |ui| {
+                        match self.memory.subscriptions.get(selected_topic) {
+                            Some(sub_name) => {
+                                let messages_view = self
+                                    .messages_views
                                     .entry(selected_topic.clone())
-                                    .or_default(),
-                                self.memory.messages.get(selected_topic).unwrap_or(&vec![]),
-                            );
-                        }
-                        None => {
-                            ui.with_layout(
-                                egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
-                                |ui| {
-                                    ui.spinner();
-                                },
-                            );
+                                    .or_default();
+
+                                messages_view.show(
+                                    ui,
+                                    &self.front_tx,
+                                    selected_topic,
+                                    sub_name,
+                                    self.memory
+                                        .column_settings
+                                        .entry(selected_topic.clone())
+                                        .or_default(),
+                                    self.memory.messages.get(selected_topic).unwrap_or(&vec![]),
+                                );
+                            }
+                            None => {
+                                ui.with_layout(
+                                    egui::Layout::centered_and_justified(
+                                        egui::Direction::LeftToRight,
+                                    ),
+                                    |ui| {
+                                        ui.spinner();
+                                    },
+                                );
+                            }
                         }
                     });
             }
@@ -244,7 +248,7 @@ impl App {
 
     fn render_close_dialog(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let cleanup_subscriptions = || {
-            let sub_names = self.subscriptions.values().cloned().collect();
+            let sub_names = self.memory.subscriptions.values().cloned().collect();
             delete_subscriptions(&self.front_tx, sub_names);
         };
         self.exit_state.show(ctx, frame, cleanup_subscriptions)
