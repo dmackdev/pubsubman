@@ -242,10 +242,10 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         ctx.request_repaint();
         self.handle_backend_message();
+        self.render_close_dialog(ctx, frame);
         self.render_top_panel(ctx, frame);
         self.render_topics_panel(ctx);
         self.render_central_panel(ctx);
-        self.render_close_dialog(ctx, frame);
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
