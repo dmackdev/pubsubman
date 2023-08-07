@@ -11,22 +11,26 @@ use crate::{
     actions::{create_subscription, delete_subscriptions, refresh_topics},
     column_settings::ColumnSettings,
     exit_state::{ExitState, SubscriptionCleanupState},
-    save_state::SaveState,
     settings::Settings,
     ui::{render_topic_name, MessagesView, PublishView},
 };
+
+#[derive(Default, serde::Deserialize, serde::Serialize)]
+struct Memory {
+    pub messages: HashMap<TopicName, Vec<PubsubMessage>>,
+    pub column_settings: HashMap<TopicName, ColumnSettings>,
+    pub settings: Settings,
+}
 
 pub struct App {
     topic_names: Vec<TopicName>,
     selected_topic: Option<TopicName>,
     /// The subscriptions this app has created in order to recieve messages.
     subscriptions: HashMap<TopicName, SubscriptionName>,
-    messages: HashMap<TopicName, Vec<PubsubMessage>>,
     publish_views: HashMap<TopicName, PublishView>,
     messages_views: HashMap<TopicName, MessagesView>,
-    column_settings: HashMap<TopicName, ColumnSettings>,
-    settings: Settings,
     exit_state: ExitState,
+    memory: Memory,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
 }
@@ -43,25 +47,19 @@ impl App {
 
         refresh_topics(&front_tx);
 
-        let SaveState {
-            messages,
-            column_settings,
-            settings,
-        } = cc
+        let memory = cc
             .storage
-            .and_then(|storage| eframe::get_value::<SaveState>(storage, eframe::APP_KEY))
+            .and_then(|storage| eframe::get_value::<Memory>(storage, eframe::APP_KEY))
             .unwrap_or_default();
 
         Self {
             topic_names: vec![],
             selected_topic: None,
             subscriptions: HashMap::default(),
-            messages,
             publish_views: HashMap::default(),
             messages_views: HashMap::default(),
-            column_settings,
-            settings,
             exit_state: ExitState::default(),
+            memory,
             front_tx,
             back_rx,
         }
@@ -78,7 +76,11 @@ impl App {
                     self.subscriptions.insert(topic_name, sub_name);
                 }
                 BackendMessage::MessageReceived(topic_name, message) => {
-                    self.messages.entry(topic_name).or_default().push(message);
+                    self.memory
+                        .messages
+                        .entry(topic_name)
+                        .or_default()
+                        .push(message);
                 }
                 BackendMessage::SubscriptionsDeleted(results) => {
                     let successfully_deleted: HashSet<SubscriptionName> =
@@ -107,7 +109,7 @@ impl App {
                 ui.menu_button("View", |ui| {
                     ui.horizontal(|ui| {
                         ui.checkbox(
-                            &mut self.settings.view.show_publish_message_panel,
+                            &mut self.memory.settings.view.show_publish_message_panel,
                             " Publish Message Panel",
                         );
                     });
@@ -179,14 +181,18 @@ impl App {
 
                 egui::TopBottomPanel::bottom("topic_view_bottom_panel")
                     .resizable(true)
-                    .show_animated(ctx, self.settings.view.show_publish_message_panel, |ui| {
-                        self.publish_views
-                            .entry(selected_topic.clone())
-                            .or_default()
-                            .show(ui, &self.front_tx, selected_topic);
+                    .show_animated(
+                        ctx,
+                        self.memory.settings.view.show_publish_message_panel,
+                        |ui| {
+                            self.publish_views
+                                .entry(selected_topic.clone())
+                                .or_default()
+                                .show(ui, &self.front_tx, selected_topic);
 
-                        ui.allocate_space(ui.available_size());
-                    });
+                            ui.allocate_space(ui.available_size());
+                        },
+                    );
 
                 egui::CentralPanel::default()
                     .frame(
@@ -206,10 +212,11 @@ impl App {
                                 &self.front_tx,
                                 selected_topic,
                                 sub_name,
-                                self.column_settings
+                                self.memory
+                                    .column_settings
                                     .entry(selected_topic.clone())
                                     .or_default(),
-                                self.messages.get(selected_topic).unwrap_or(&vec![]),
+                                self.memory.messages.get(selected_topic).unwrap_or(&vec![]),
                             );
                         }
                         None => {
@@ -255,20 +262,10 @@ impl eframe::App for App {
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value::<SaveState>(storage, eframe::APP_KEY, &self.into());
+        eframe::set_value::<Memory>(storage, eframe::APP_KEY, &self.memory);
     }
 
     fn on_close_event(&mut self) -> bool {
         self.exit_state.on_close_event()
-    }
-}
-
-impl From<&mut App> for SaveState {
-    fn from(value: &mut App) -> Self {
-        Self {
-            messages: value.messages.clone(),
-            column_settings: value.column_settings.clone(),
-            settings: value.settings.clone(),
-        }
     }
 }

@@ -4,7 +4,6 @@ mod actions;
 mod app;
 mod column_settings;
 mod exit_state;
-mod save_state;
 mod settings;
 mod ui;
 pub use app::App;
