@@ -246,12 +246,23 @@ impl App {
         };
     }
 
-    fn render_close_dialog(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn render_close_dialog(&mut self, ctx: &egui::Context) {
         let cleanup_subscriptions = || {
             let sub_names = self.memory.subscriptions.values().cloned().collect();
             delete_subscriptions(&self.front_tx, sub_names);
         };
-        self.exit_state.show(ctx, frame, cleanup_subscriptions)
+        self.exit_state.show(ctx, cleanup_subscriptions)
+    }
+
+    fn handle_exit(&mut self, frame: &mut eframe::Frame) {
+        if self.exit_state.can_exit {
+            for view in self.messages_views.values_mut() {
+                if let Some(cancel_token) = view.stream_messages_cancel_token.take() {
+                    cancel_token.cancel();
+                }
+            }
+            frame.close();
+        }
     }
 }
 
@@ -259,10 +270,11 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         ctx.request_repaint();
         self.handle_backend_message();
-        self.render_close_dialog(ctx, frame);
+        self.render_close_dialog(ctx);
         self.render_top_panel(ctx, frame);
         self.render_topics_panel(ctx);
         self.render_central_panel(ctx);
+        self.handle_exit(frame);
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {

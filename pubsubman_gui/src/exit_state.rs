@@ -3,7 +3,7 @@ use crate::ui::Modal;
 #[derive(Default)]
 pub struct ExitState {
     show_exit_dialogue: bool,
-    can_exit: bool,
+    pub can_exit: bool,
     pub subscription_cleanup_state: SubscriptionCleanupState,
 }
 
@@ -23,12 +23,7 @@ const MARGIN: egui::Margin = egui::Margin {
 };
 
 impl ExitState {
-    pub fn show(
-        &mut self,
-        ctx: &egui::Context,
-        frame: &mut eframe::Frame,
-        cleanup_subscriptions: impl FnOnce(),
-    ) {
+    pub fn show(&mut self, ctx: &egui::Context, cleanup_subscriptions: impl FnOnce()) {
         if !self.show_exit_dialogue {
             return;
         }
@@ -46,14 +41,13 @@ impl ExitState {
                     egui::Layout::top_down(egui::Align::Center),
                     |ui| match self.subscription_cleanup_state {
                         SubscriptionCleanupState::Idle => {
-                            self.render_dialog_contents(ui, cleanup_subscriptions, frame);
+                            self.render_dialog_contents(ui, cleanup_subscriptions);
                         }
                         SubscriptionCleanupState::Waiting => {
                             ui.spinner();
                         }
                         SubscriptionCleanupState::Complete => {
                             self.can_exit = true;
-                            frame.close();
                         }
                     },
                 )
@@ -61,12 +55,7 @@ impl ExitState {
         });
     }
 
-    fn render_dialog_contents(
-        &mut self,
-        ui: &mut egui::Ui,
-        cleanup_subscriptions: impl FnOnce(),
-        frame: &mut eframe::Frame,
-    ) {
+    fn render_dialog_contents(&mut self, ui: &mut egui::Ui, cleanup_subscriptions: impl FnOnce()) {
         ui.label(
             "Pubsubman created Subscriptions in order to receive messages. Do you want to delete these Subscriptions before you quit?",
         );
@@ -82,7 +71,6 @@ impl ExitState {
 
                 if ui.button("Skip").clicked() {
                     self.can_exit = true;
-                    frame.close();
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
