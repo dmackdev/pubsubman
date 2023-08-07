@@ -83,14 +83,17 @@ impl Backend {
                 FrontendMessage::DeleteSubscriptions(sub_names) => {
                     let back_tx = self.back_tx.clone();
                     rt.spawn(async move {
-                        let client = create_client().await;
+                        let mut futures = vec![];
 
-                        // TODO: Do in parallel
                         for sub_name in sub_names.into_iter() {
-                            let subscription = client.subscription(&sub_name.0);
-                            let _ = subscription.delete(None).await;
-                            println!("DELETED {}", &sub_name.0);
+                            futures.push(async move {
+                                let client = create_client().await;
+                                let subscription = client.subscription(&sub_name.0);
+                                let _ = subscription.delete(None).await;
+                            });
                         }
+
+                        futures::future::join_all(futures).await;
 
                         back_tx
                             .send(BackendMessage::SubscriptionsDeleted)
