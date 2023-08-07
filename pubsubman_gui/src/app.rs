@@ -171,18 +171,16 @@ impl App {
                         });
                     });
 
-                if self.settings.view.show_publish_message_panel {
-                    egui::TopBottomPanel::bottom("topic_view_bottom_panel")
-                        .resizable(true)
-                        .show(ctx, |ui| {
-                            self.publish_views
-                                .entry(selected_topic.clone())
-                                .or_default()
-                                .show(ui, &self.front_tx, selected_topic);
+                egui::TopBottomPanel::bottom("topic_view_bottom_panel")
+                    .resizable(true)
+                    .show_animated(ctx, self.settings.view.show_publish_message_panel, |ui| {
+                        self.publish_views
+                            .entry(selected_topic.clone())
+                            .or_default()
+                            .show(ui, &self.front_tx, selected_topic);
 
-                            ui.allocate_space(ui.available_size());
-                        });
-                }
+                        ui.allocate_space(ui.available_size());
+                    });
 
                 egui::CentralPanel::default()
                     .frame(
