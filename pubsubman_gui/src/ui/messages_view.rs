@@ -149,7 +149,8 @@ where
         .resizable(true)
         .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
         .min_scrolled_height(0.0)
-        .auto_shrink([false, true]);
+        .auto_shrink([false, true])
+        .stick_to_bottom(true);
 
     let ColumnSettings {
         show_id,
