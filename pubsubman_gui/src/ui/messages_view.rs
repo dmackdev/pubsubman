@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Local};
-use egui_json_tree::JsonTree;
+use egui_json_tree::{JsonTree, JsonTreeResponse};
 use pubsubman_backend::{
     message::FrontendMessage,
     model::{PubsubMessage, SubscriptionName, TopicName},
@@ -96,19 +96,27 @@ impl MessagesView {
                         ui.label("Pull or Stream new messages to retrieve the latest.");
                     });
                 } else {
+                    let mut search_query_changed = false;
+
                     ui.horizontal(|ui| {
                         ui.visuals_mut().extreme_bg_color = egui::Color32::from_gray(32);
                         ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                            ui.add(
+                            let search_query_edit_response = ui.add(
                                 egui::TextEdit::singleline(&mut self.search_query)
                                     .desired_width(125.0)
                                     .hint_text("Search"),
                             );
 
+                            if search_query_edit_response.changed() {
+                                search_query_changed = true;
+                            }
+
                             ui.visuals_mut().widgets.inactive.weak_bg_fill =
                                 egui::Color32::from_gray(32);
-                            if ui.button("✖").clicked() {
+
+                            if ui.button("✖").clicked() && !self.search_query.is_empty() {
                                 self.search_query.clear();
+                                search_query_changed = true;
                             }
 
                             ui.with_layout(
@@ -130,12 +138,18 @@ impl MessagesView {
                         .outer_margin(outer_margin)
                         .rounding(ui.style().visuals.window_rounding)
                         .show(ui, |ui| {
-                            render_messages_table(
+                            let responses = render_messages_table(
                                 ui,
                                 column_settings,
                                 filtered_messages,
                                 &search_query,
                             );
+
+                            if search_query_changed {
+                                for response in responses {
+                                    response.reset_expanded(ui);
+                                }
+                            }
                         });
                 }
             });
@@ -147,9 +161,12 @@ fn render_messages_table<'a, I>(
     column_settings: &ColumnSettings,
     messages: I,
     search_term: &str,
-) where
+) -> Vec<JsonTreeResponse>
+where
     I: Iterator<Item = &'a PubsubMessage>,
 {
+    let mut json_tree_responses = vec![];
+
     let ColumnSettings {
         show_id,
         show_published_at,
@@ -203,15 +220,18 @@ fn render_messages_table<'a, I>(
                     Err(_) => Value::String(message.data.clone()),
                 };
 
-                JsonTree::new(&message.id, &value)
+                let response = JsonTree::new(&message.id, &value)
                     .default_expand(egui_json_tree::Expand::SearchResults(
                         search_term.to_string(),
                     ))
                     .show(ui);
 
+                json_tree_responses.push(response);
+
                 ui.end_row();
             }
         });
+    json_tree_responses
 }
 
 fn format_attributes(attributes: &HashMap<String, String>) -> String {
