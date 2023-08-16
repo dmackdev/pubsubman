@@ -144,6 +144,7 @@ impl MessagesView {
                                 .show(ui, |ui| {
                                     let responses = render_messages_table(
                                         ui,
+                                        selected_topic,
                                         column_settings,
                                         filtered_messages,
                                         &search_query,
@@ -163,6 +164,7 @@ impl MessagesView {
 
 fn render_messages_table<'a, I>(
     ui: &mut egui::Ui,
+    selected_topic: &TopicName,
     column_settings: &ColumnSettings,
     messages: I,
     search_term: &str,
@@ -183,7 +185,7 @@ where
         |acc, col_enabled| if *col_enabled { acc + 1 } else { acc },
     );
 
-    egui::Grid::new("some_unique_id")
+    egui::Grid::new(&selected_topic.0)
         .striped(true)
         .num_columns(num_columns)
         .spacing((25.0, 8.0))
