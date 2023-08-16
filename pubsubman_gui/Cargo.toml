@@ -8,14 +8,15 @@ rust-version = "1.71"
 
 [dependencies]
 chrono = { workspace = true }
-egui = "0.22.0"
-egui_extras = "0.22.0"
-eframe = { version = "0.22.0", default-features = false, features = [
+egui = { git = "https://github.com/emilk/egui", rev = "481f448" }
+egui_extras = { git = "https://github.com/emilk/egui", rev = "481f448" }
+eframe = { git = "https://github.com/emilk/egui", rev = "481f448", default-features = false, features = [
   "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
   "default_fonts", # Embed the default egui fonts.
   "glow",          # Use the glow rendering backend. Alternative: "wgpu".
   "persistence",   # Enable restoring app state when restarting the app.
 ] }
+egui_json_tree = { path = "../../egui_json_tree" }
 log = "0.4"
 
 serde = { workspace = true }
@@ -24,3 +25,4 @@ env_logger = "0.10"
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 pubsubman_backend = { version = "0.1.0", path = "../pubsubman_backend" }
+serde_json = "1.0.104"

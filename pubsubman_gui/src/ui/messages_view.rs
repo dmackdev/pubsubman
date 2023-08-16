@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Local};
-use egui_extras::{Column, TableBuilder};
+use egui_json_tree::JsonTree;
 use pubsubman_backend::{
     message::FrontendMessage,
     model::{PubsubMessage, SubscriptionName, TopicName},
 };
+use serde_json::Value;
 use tokio::sync::mpsc::Sender;
 use tokio_util::sync::CancellationToken;
 
@@ -129,103 +130,86 @@ impl MessagesView {
                         .outer_margin(outer_margin)
                         .rounding(ui.style().visuals.window_rounding)
                         .show(ui, |ui| {
-                            render_messages_table(ui, column_settings, filtered_messages);
+                            render_messages_table(
+                                ui,
+                                column_settings,
+                                filtered_messages,
+                                &search_query,
+                            );
                         });
                 }
             });
     }
 }
 
-const ROW_HEIGHT_PADDING: f32 = 4.0;
-
-fn render_messages_table<'a, I>(ui: &mut egui::Ui, column_settings: &ColumnSettings, messages: I)
-where
+fn render_messages_table<'a, I>(
+    ui: &mut egui::Ui,
+    column_settings: &ColumnSettings,
+    messages: I,
+    search_term: &str,
+) where
     I: Iterator<Item = &'a PubsubMessage>,
 {
-    let text_height = ui.text_style_height(&egui::TextStyle::Monospace);
-
-    let mut table = TableBuilder::new(ui)
-        .striped(true)
-        .resizable(true)
-        .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-        .min_scrolled_height(0.0)
-        .auto_shrink([false, true])
-        .stick_to_bottom(true);
-
     let ColumnSettings {
         show_id,
         show_published_at,
         show_attributes,
     } = *column_settings;
 
-    for col_enabled in [show_id, show_published_at, show_attributes] {
-        if col_enabled {
-            table = table.column(Column::auto());
-        }
-    }
+    let num_columns = [show_id, show_published_at, show_attributes].iter().fold(
+        1, // Data column will always be present
+        |acc, col_enabled| if *col_enabled { acc + 1 } else { acc },
+    );
 
-    // For Data column which cannot be hidden
-    table = table.column(Column::remainder());
-
-    table
-        .header(20.0, |mut header| {
+    egui::Grid::new("some_unique_id")
+        .striped(true)
+        .num_columns(num_columns)
+        .show(ui, |ui| {
             if show_id {
-                header.col(|ui| {
-                    ui.label("ID");
-                });
+                ui.label("ID");
             }
 
             if show_published_at {
-                header.col(|ui| {
-                    ui.label("Published at");
-                });
+                ui.label("Published at");
             }
 
             if show_attributes {
-                header.col(|ui| {
-                    ui.label("Attributes");
-                });
+                ui.label("Attributes");
             }
 
-            header.col(|ui| {
-                ui.label("Data");
-            });
-        })
-        .body(|mut body| {
+            ui.label("Data");
+
+            ui.end_row();
+
             for message in messages {
-                let num_lines = message.data.split('\n').count();
-                let row_height = num_lines as f32 * text_height + ROW_HEIGHT_PADDING;
+                if show_id {
+                    ui.label(&message.id);
+                }
 
-                body.row(row_height, |mut row| {
-                    if show_id {
-                        row.col(|ui| {
-                            ui.label(&message.id);
-                        });
+                if show_published_at {
+                    if let Some(publish_time) = message.publish_time {
+                        let local_publish_time: DateTime<Local> = publish_time.into();
+
+                        ui.label(format!("{}", local_publish_time.format("%d/%m/%Y %H:%M")));
                     }
+                }
 
-                    if show_published_at {
-                        row.col(|ui| {
-                            if let Some(publish_time) = message.publish_time {
-                                let local_publish_time: DateTime<Local> = publish_time.into();
+                if show_attributes {
+                    ui.label(format_attributes(&message.attributes));
+                }
 
-                                ui.label(format!(
-                                    "{}",
-                                    local_publish_time.format("%d/%m/%Y %H:%M")
-                                ));
-                            }
-                        });
-                    }
+                let value: Value = match serde_json::from_str(&message.data) {
+                    Ok(val) => val,
+                    Err(_) => Value::String(message.data.clone()),
+                };
 
-                    if show_attributes {
-                        row.col(|ui| {
-                            ui.label(format_attributes(&message.attributes));
-                        });
-                    }
+                JsonTree::new(&message.id, &value)
+                    .default_expand(egui_json_tree::Expand::SearchResults(
+                        search_term.to_string(),
+                    ))
+                    .show(ui);
 
-                    row.col(|ui| {
-                        ui.label(&message.data);
-                    });
-                });
+                ui.end_row();
             }
         });
 }
