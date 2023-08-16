@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Local};
+use egui::scroll_area::ScrollBarVisibility;
 use egui_json_tree::{JsonTree, JsonTreeResponse};
 use pubsubman_backend::{
     message::FrontendMessage,
@@ -139,7 +140,7 @@ impl MessagesView {
                         .rounding(ui.style().visuals.window_rounding)
                         .show(ui, |ui| {
                             egui::ScrollArea::vertical()
-                                .auto_shrink([false; 2])
+                                .auto_shrink([false, true])
                                 .show(ui, |ui| {
                                     let responses = render_messages_table(
                                         ui,
@@ -224,13 +225,19 @@ where
                     Err(_) => Value::String(message.data.clone()),
                 };
 
-                let response = JsonTree::new(&message.id, &value)
-                    .default_expand(egui_json_tree::Expand::SearchResults(
-                        search_term.to_string(),
-                    ))
-                    .show(ui);
+                // Wrapping in this scroll area to get this column to expand to full width.
+                egui::ScrollArea::neither()
+                    .auto_shrink([false, true])
+                    .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
+                    .show(ui, |ui| {
+                        let response = JsonTree::new(&message.id, &value)
+                            .default_expand(egui_json_tree::Expand::SearchResults(
+                                search_term.to_string(),
+                            ))
+                            .show(ui);
 
-                json_tree_responses.push(response);
+                        json_tree_responses.push(response);
+                    });
 
                 ui.end_row();
             }
