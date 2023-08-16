@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Local};
 use egui::scroll_area::ScrollBarVisibility;
-use egui_json_tree::{JsonTree, JsonTreeResponse};
+use egui_json_tree::{Expand, JsonTree, JsonTreeResponse};
 use pubsubman_backend::{
     message::FrontendMessage,
     model::{PubsubMessage, SubscriptionName, TopicName},
@@ -228,15 +228,19 @@ where
                     Err(_) => Value::String(message.data.clone()),
                 };
 
+                let default_expand = if search_term.is_empty() {
+                    Expand::ToLevel(0)
+                } else {
+                    Expand::SearchResults(search_term.to_string())
+                };
+
                 // Wrapping in this scroll area to get this column to expand to full width.
                 egui::ScrollArea::neither()
                     .auto_shrink([false, true])
                     .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
                     .show(ui, |ui| {
                         let response = JsonTree::new(&message.id, &value)
-                            .default_expand(egui_json_tree::Expand::SearchResults(
-                                search_term.to_string(),
-                            ))
+                            .default_expand(default_expand)
                             .show(ui);
 
                         json_tree_responses.push(response);
