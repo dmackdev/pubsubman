@@ -186,6 +186,7 @@ where
     egui::Grid::new("some_unique_id")
         .striped(true)
         .num_columns(num_columns)
+        .spacing((25.0, 8.0))
         .show(ui, |ui| {
             if show_id {
                 ui.label("ID");
