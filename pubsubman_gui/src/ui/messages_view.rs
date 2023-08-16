@@ -138,18 +138,22 @@ impl MessagesView {
                         .outer_margin(outer_margin)
                         .rounding(ui.style().visuals.window_rounding)
                         .show(ui, |ui| {
-                            let responses = render_messages_table(
-                                ui,
-                                column_settings,
-                                filtered_messages,
-                                &search_query,
-                            );
+                            egui::ScrollArea::vertical()
+                                .auto_shrink([false; 2])
+                                .show(ui, |ui| {
+                                    let responses = render_messages_table(
+                                        ui,
+                                        column_settings,
+                                        filtered_messages,
+                                        &search_query,
+                                    );
 
-                            if search_query_changed {
-                                for response in responses {
-                                    response.reset_expanded(ui);
-                                }
-                            }
+                                    if search_query_changed {
+                                        for response in responses {
+                                            response.reset_expanded(ui);
+                                        }
+                                    }
+                                });
                         });
                 }
             });
