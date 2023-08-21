@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Local};
-use egui::scroll_area::ScrollBarVisibility;
-use egui_json_tree::{Expand, JsonTree, JsonTreeResponse};
+use egui_json_tree::{DefaultExpand, JsonTree, JsonTreeResponse};
 use pubsubman_backend::{
     message::FrontendMessage,
     model::{PubsubMessage, SubscriptionName, TopicName},
@@ -167,7 +166,7 @@ fn render_messages_table<'a, I>(
     selected_topic: &TopicName,
     column_settings: &ColumnSettings,
     messages: I,
-    search_term: &str,
+    search_term: &String,
 ) -> Vec<JsonTreeResponse>
 where
     I: Iterator<Item = &'a PubsubMessage>,
@@ -202,7 +201,15 @@ where
                 ui.label("Attributes");
             }
 
-            ui.label("Data");
+            // Let Data column take up all remaining space.
+            ui.with_layout(
+                egui::Layout::left_to_right(egui::Align::Center)
+                    .with_main_align(egui::Align::LEFT)
+                    .with_main_justify(true),
+                |ui| {
+                    ui.label("Data");
+                },
+            );
 
             ui.end_row();
 
@@ -228,23 +235,10 @@ where
                     Err(_) => Value::String(message.data.clone()),
                 };
 
-                let default_expand = if search_term.is_empty() {
-                    Expand::ToLevel(0)
-                } else {
-                    Expand::SearchResults(search_term.to_string())
-                };
+                let response = JsonTree::new(&message.id, &value)
+                    .show(ui, DefaultExpand::SearchResults(search_term));
 
-                // Wrapping in this scroll area to get this column to expand to full width.
-                egui::ScrollArea::neither()
-                    .auto_shrink([false, true])
-                    .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
-                    .show(ui, |ui| {
-                        let response = JsonTree::new(&message.id, &value)
-                            .default_expand(default_expand)
-                            .show(ui);
-
-                        json_tree_responses.push(response);
-                    });
+                json_tree_responses.push(response);
 
                 ui.end_row();
             }
