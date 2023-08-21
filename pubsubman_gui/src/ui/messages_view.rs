@@ -139,6 +139,7 @@ impl MessagesView {
                         .rounding(ui.style().visuals.window_rounding)
                         .show(ui, |ui| {
                             egui::ScrollArea::vertical()
+                                .stick_to_bottom(true)
                                 .auto_shrink([false, true])
                                 .show(ui, |ui| {
                                     let responses = render_messages_table(
