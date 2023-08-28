@@ -37,12 +37,12 @@ pub struct App {
 
 impl App {
     /// Called once before the first frame.
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, emulator_project_id: Option<String>) -> Self {
         let (front_tx, front_rx) = tokio::sync::mpsc::channel(10);
         let (back_tx, back_rx) = tokio::sync::mpsc::channel(10);
 
         std::thread::spawn(|| {
-            Backend::new(back_tx, front_rx).init();
+            Backend::new(back_tx, front_rx, emulator_project_id).init();
         });
 
         refresh_topics(&front_tx);

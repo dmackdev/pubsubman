@@ -9,6 +9,7 @@ edition = "2021"
 chrono = { workspace = true }
 futures = "0.3.28"
 futures-util = "0.3.28"
+google-cloud-gax = "0.15.0"
 google-cloud-googleapis = "0.10.0"
 google-cloud-pubsub = "0.18.0"
 serde = { workspace = true }

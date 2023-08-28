@@ -26,3 +26,4 @@ tokio = { workspace = true }
 tokio-util = { workspace = true }
 pubsubman_backend = { version = "0.1.0", path = "../pubsubman_backend" }
 serde_json = "1.0.104"
+clap = { version = "4.4.0", features = ["derive"] }

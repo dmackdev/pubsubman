@@ -1,4 +1,5 @@
 use futures_util::StreamExt;
+use google_cloud_gax::conn::Environment;
 use google_cloud_pubsub::{
     client::{Client, ClientConfig},
     subscription::SubscriptionConfig,
@@ -18,11 +19,20 @@ pub mod model;
 pub struct Backend {
     back_tx: Sender<BackendMessage>,
     front_rx: Receiver<FrontendMessage>,
+    emulator_project_id: Option<String>,
 }
 
 impl Backend {
-    pub fn new(back_tx: Sender<BackendMessage>, front_rx: Receiver<FrontendMessage>) -> Self {
-        Self { back_tx, front_rx }
+    pub fn new(
+        back_tx: Sender<BackendMessage>,
+        front_rx: Receiver<FrontendMessage>,
+        emulator_project_id: Option<String>,
+    ) -> Self {
+        Self {
+            back_tx,
+            front_rx,
+            emulator_project_id,
+        }
     }
 
     pub fn init(&mut self) {
@@ -36,9 +46,10 @@ impl Backend {
             match message {
                 FrontendMessage::RefreshTopicsRequest => {
                     let back_tx = self.back_tx.clone();
+                    let emulator_project_id = self.emulator_project_id.clone();
 
                     rt.spawn(async move {
-                        let client = create_client().await;
+                        let client = create_client(emulator_project_id).await;
                         let topics = client
                             .get_topics(None)
                             .await
@@ -55,9 +66,10 @@ impl Backend {
                 }
                 FrontendMessage::CreateSubscriptionRequest(topic_name) => {
                     let back_tx = self.back_tx.clone();
+                    let emulator_project_id = self.emulator_project_id.clone();
 
                     rt.spawn(async move {
-                        let client = create_client().await;
+                        let client = create_client(emulator_project_id).await;
 
                         let sub_name = format!("pubsubman-subscription-{}", Uuid::new_v4());
 
@@ -82,12 +94,15 @@ impl Backend {
                 }
                 FrontendMessage::DeleteSubscriptions(sub_names) => {
                     let back_tx = self.back_tx.clone();
+                    let emulator_project_id = self.emulator_project_id.clone();
+
                     rt.spawn(async move {
                         let mut futures = vec![];
 
                         for sub_name in sub_names.into_iter() {
+                            let emulator_project_id = emulator_project_id.clone();
                             futures.push(async move {
-                                let client = create_client().await;
+                                let client = create_client(emulator_project_id).await;
                                 let subscription = client.subscription(&sub_name.0);
 
                                 match subscription.delete(None).await {
@@ -107,9 +122,10 @@ impl Backend {
                 }
                 FrontendMessage::StreamMessages(topic_name, sub_name, cancel_token) => {
                     let back_tx = self.back_tx.clone();
+                    let emulator_project_id = self.emulator_project_id.clone();
 
                     rt.spawn(async move {
-                        let client = create_client().await;
+                        let client = create_client(emulator_project_id).await;
                         let subscription = client.subscription(&sub_name.0);
 
                         let pull_messages_future = async move {
@@ -135,8 +151,10 @@ impl Backend {
                     });
                 }
                 FrontendMessage::PublishMessage(topic_name, message) => {
+                    let emulator_project_id = self.emulator_project_id.clone();
+
                     rt.spawn(async move {
-                        let client = create_client().await;
+                        let client = create_client(emulator_project_id).await;
                         let topic = client.topic(&topic_name.0);
                         let publisher = topic.new_publisher(None);
                         let awaiter = publisher.publish(message.into()).await;
@@ -148,7 +166,14 @@ impl Backend {
     }
 }
 
-async fn create_client() -> Client {
-    let config = ClientConfig::default().with_auth().await.unwrap();
+async fn create_client(emulator_project_id: Option<String>) -> Client {
+    let mut config = ClientConfig::default().with_auth().await.unwrap();
+
+    if let (Environment::Emulator(_), Some(emulator_project_id)) =
+        (&config.environment, emulator_project_id)
+    {
+        config.project_id = Some(emulator_project_id);
+    }
+
     Client::new(config).await.unwrap()
 }
