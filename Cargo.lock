@@ -927,6 +927,7 @@ dependencies = [
 [[package]]
 name = "egui_json_tree"
 version = "0.1.0"
+source = "git+https://github.com/dmackdev/egui_json_tree?rev=1f93c83#1f93c83fab1c037108fcc5e918821fc7cc53d802"
 dependencies = [
  "egui",
  "serde_json",
