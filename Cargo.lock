@@ -2518,23 +2518,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pubsubman_backend"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "futures",
- "futures-util",
- "google-cloud-gax",
- "google-cloud-googleapis",
- "google-cloud-pubsub",
- "serde",
- "tokio",
- "tokio-util",
- "uuid",
-]
-
-[[package]]
-name = "pubsubman_gui"
+name = "pubsubman"
 version = "0.1.0"
 dependencies = [
  "chrono",
@@ -2550,6 +2534,22 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-util",
+]
+
+[[package]]
+name = "pubsubman_backend"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "futures",
+ "futures-util",
+ "google-cloud-gax",
+ "google-cloud-googleapis",
+ "google-cloud-pubsub",
+ "serde",
+ "tokio",
+ "tokio-util",
+ "uuid",
 ]
 
 [[package]]

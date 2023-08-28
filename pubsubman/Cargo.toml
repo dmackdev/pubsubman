@@ -1,5 +1,5 @@
 [package]
-name = "pubsubman_gui"
+name = "pubsubman"
 version = "0.1.0"
 authors = ["Duncan MacKinnon <dmackdev@gmail.com>"]
 edition = "2021"
