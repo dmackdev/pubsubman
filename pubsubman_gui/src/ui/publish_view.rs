@@ -101,9 +101,6 @@ impl PublishView {
 
 impl From<&mut PublishView> for PubsubMessageToPublish {
     fn from(val: &mut PublishView) -> Self {
-        Self::new(
-            val.data.clone(),
-            HashMap::from_iter(val.attributes.clone().into_iter()),
-        )
+        Self::new(val.data.clone(), HashMap::from_iter(val.attributes.clone()))
     }
 }
