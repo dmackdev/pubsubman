@@ -16,7 +16,7 @@ eframe = { git = "https://github.com/emilk/egui", rev = "481f448", default-featu
   "glow",          # Use the glow rendering backend. Alternative: "wgpu".
   "persistence",   # Enable restoring app state when restarting the app.
 ] }
-egui_json_tree = { git = "https://github.com/dmackdev/egui_json_tree", rev = "1f93c83" }
+egui_json_tree = { git = "https://github.com/dmackdev/egui_json_tree", rev = "c9a6909" }
 log = "0.4"
 
 serde = { workspace = true }
