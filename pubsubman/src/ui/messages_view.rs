@@ -20,7 +20,6 @@ pub struct MessagesView {
     pub stream_messages_enabled: bool,
     pub stream_messages_cancel_token: Option<CancellationToken>,
     pub search_query: String,
-    copy_popup: Option<(egui::Pos2, String, Value)>,
 }
 
 impl MessagesView {
@@ -33,8 +32,6 @@ impl MessagesView {
         column_settings: &mut ColumnSettings,
         messages: &[PubsubMessage],
     ) {
-        self.show_copy_popup(ui);
-
         let search_query = self.search_query.to_ascii_lowercase();
         let filtered_messages = messages
             .iter()
@@ -153,77 +150,15 @@ impl MessagesView {
                                         &search_query,
                                     );
 
-                                    for (response, value) in responses {
+                                    for response in responses {
                                         if search_query_changed {
                                             response.reset_expanded(ui);
-                                        }
-
-                                        if let Some((response, path)) = response.inner {
-                                            if response.secondary_clicked() {
-                                                self.copy_popup = Some((
-                                                    response
-                                                        .interact_pointer_pos()
-                                                        .unwrap_or(response.rect.left_bottom()),
-                                                    path,
-                                                    value,
-                                                ));
-                                            }
                                         }
                                     }
                                 });
                         });
                 }
             });
-    }
-
-    fn show_copy_popup(&mut self, ui: &mut egui::Ui) {
-        let popup_id = ui.make_persistent_id("copy_popup");
-        let mut should_close_popup = false;
-
-        if let Some((pos, path, value)) = &self.copy_popup {
-            let area_response = egui::Area::new(popup_id)
-                .order(egui::Order::Foreground)
-                .constrain(true)
-                .fixed_pos(*pos)
-                .pivot(egui::Align2::LEFT_TOP)
-                .show(ui.ctx(), |ui| {
-                    egui::Frame::popup(ui.style()).show(ui, |ui| {
-                        ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                            ui.set_width(150.0);
-
-                            if !path.is_empty()
-                                && ui
-                                    .add(egui::Button::new("Copy property path").frame(false))
-                                    .clicked()
-                            {
-                                ui.output_mut(|o| o.copied_text = path.clone());
-                                should_close_popup = true;
-                            }
-
-                            if ui
-                                .add(egui::Button::new("Copy contents").frame(false))
-                                .clicked()
-                            {
-                                if let Some(val) = value.pointer(path) {
-                                    if let Ok(pretty_str) = serde_json::to_string_pretty(val) {
-                                        ui.output_mut(|o| o.copied_text = pretty_str);
-                                    }
-                                }
-                                should_close_popup = true;
-                            }
-                        });
-                    });
-                })
-                .response;
-
-            if area_response.clicked_elsewhere() {
-                should_close_popup = true;
-            }
-        }
-
-        if should_close_popup {
-            self.copy_popup = None;
-        }
     }
 }
 
@@ -233,7 +168,7 @@ fn render_messages_table<'a, I>(
     column_settings: &ColumnSettings,
     messages: I,
     search_term: &str,
-) -> Vec<(JsonTreeResponse, Value)>
+) -> Vec<JsonTreeResponse>
 where
     I: Iterator<Item = &'a PubsubMessage>,
 {
@@ -302,14 +237,47 @@ where
                 };
 
                 let response = JsonTree::new(&message.id, &value)
-                    .show(ui, DefaultExpand::SearchResults(search_term));
+                    .default_expand(DefaultExpand::SearchResults(search_term))
+                    .response_callback(|response, pointer| {
+                        response.context_menu(|ui| {
+                            show_context_menu(ui, pointer, &value);
+                        });
+                    })
+                    .show(ui);
 
-                json_tree_responses.push((response, value));
+                json_tree_responses.push(response);
 
                 ui.end_row();
             }
         });
     json_tree_responses
+}
+
+fn show_context_menu(ui: &mut egui::Ui, pointer: &String, value: &Value) {
+    ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
+        ui.set_width(150.0);
+
+        if !pointer.is_empty()
+            && ui
+                .add(egui::Button::new("Copy property path").frame(false))
+                .clicked()
+        {
+            ui.output_mut(|o| o.copied_text = pointer.clone());
+            ui.close_menu();
+        }
+
+        if ui
+            .add(egui::Button::new("Copy contents").frame(false))
+            .clicked()
+        {
+            if let Some(val) = value.pointer(pointer) {
+                if let Ok(pretty_str) = serde_json::to_string_pretty(val) {
+                    ui.output_mut(|o| o.copied_text = pretty_str);
+                }
+            }
+            ui.close_menu();
+        }
+    });
 }
 
 fn format_attributes(attributes: &HashMap<String, String>) -> String {
