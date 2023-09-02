@@ -239,9 +239,11 @@ where
                 let response = JsonTree::new(&message.id, &value)
                     .default_expand(DefaultExpand::SearchResults(search_term))
                     .response_callback(|response, pointer| {
-                        response.context_menu(|ui| {
-                            show_context_menu(ui, pointer, &value);
-                        });
+                        response
+                            .on_hover_cursor(egui::CursorIcon::ContextMenu)
+                            .context_menu(|ui| {
+                                show_context_menu(ui, pointer, &value);
+                            });
                     })
                     .show(ui);
 
