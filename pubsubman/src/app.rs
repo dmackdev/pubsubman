@@ -255,13 +255,15 @@ impl App {
         self.exit_state.show(ctx, sub_names, cleanup_subscriptions)
     }
 
-    fn handle_exit(&mut self, frame: &mut eframe::Frame) {
+    fn handle_exit(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         if self.exit_state.can_exit {
             for view in self.messages_views.values_mut() {
                 if let Some(cancel_token) = view.stream_messages_cancel_token.take() {
                     cancel_token.cancel();
                 }
             }
+            // Clear superficial widget state, e.g. reset all collapsing headers.
+            ctx.data_mut(|d| d.clear());
             frame.close();
         }
     }
@@ -275,7 +277,7 @@ impl eframe::App for App {
         self.render_top_panel(ctx, frame);
         self.render_topics_panel(ctx);
         self.render_central_panel(ctx);
-        self.handle_exit(frame);
+        self.handle_exit(ctx, frame);
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
