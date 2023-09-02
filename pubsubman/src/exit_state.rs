@@ -1,3 +1,5 @@
+use pubsubman_backend::model::SubscriptionName;
+
 use crate::ui::Modal;
 
 #[derive(Default)]
@@ -23,7 +25,12 @@ const MARGIN: egui::Margin = egui::Margin {
 };
 
 impl ExitState {
-    pub fn show(&mut self, ctx: &egui::Context, cleanup_subscriptions: impl FnOnce()) {
+    pub fn show(
+        &mut self,
+        ctx: &egui::Context,
+        sub_names: Vec<SubscriptionName>,
+        cleanup_subscriptions: impl FnOnce(Vec<SubscriptionName>),
+    ) {
         if !self.show_exit_dialogue {
             return;
         }
@@ -37,11 +44,11 @@ impl ExitState {
         Modal::new("exit_modal", title).show(ctx, |ui| {
             egui::Frame::none().inner_margin(MARGIN).show(ui, |ui| {
                 ui.allocate_ui_with_layout(
-                    egui::vec2(350.0, 150.0),
+                    egui::vec2(450.0, 150.0),
                     egui::Layout::top_down(egui::Align::Center),
                     |ui| match self.subscription_cleanup_state {
                         SubscriptionCleanupState::Idle => {
-                            self.render_dialog_contents(ui, cleanup_subscriptions);
+                            self.render_dialog_contents(ui, sub_names, cleanup_subscriptions);
                         }
                         SubscriptionCleanupState::Waiting => {
                             ui.spinner();
@@ -55,17 +62,29 @@ impl ExitState {
         });
     }
 
-    fn render_dialog_contents(&mut self, ui: &mut egui::Ui, cleanup_subscriptions: impl FnOnce()) {
-        ui.label(
-            "Pubsubman created Subscriptions in order to receive messages. Do you want to delete these Subscriptions before you quit?",
-        );
+    fn render_dialog_contents(
+        &mut self,
+        ui: &mut egui::Ui,
+        sub_names: Vec<SubscriptionName>,
+        cleanup_subscriptions: impl FnOnce(Vec<SubscriptionName>),
+    ) {
+        ui.label("Pubsubman created Subscriptions in order to receive messages.");
+        ui.label("Do you want to delete these Subscriptions before you quit?");
+
+        ui.add_space(20.0);
+
+        ui.collapsing("Subscriptions", |ui| {
+            for sub_name in sub_names.iter() {
+                ui.label(&sub_name.0);
+            }
+        });
 
         ui.add_space(20.0);
 
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                 if ui.button("Delete Subscriptions").clicked() {
-                    cleanup_subscriptions();
+                    cleanup_subscriptions(sub_names);
                     self.subscription_cleanup_state = SubscriptionCleanupState::Waiting;
                 }
 

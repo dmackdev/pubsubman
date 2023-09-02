@@ -248,11 +248,11 @@ impl App {
     }
 
     fn render_close_dialog(&mut self, ctx: &egui::Context) {
-        let cleanup_subscriptions = || {
-            let sub_names = self.memory.subscriptions.values().cloned().collect();
+        let sub_names = self.memory.subscriptions.values().cloned().collect();
+        let cleanup_subscriptions = |sub_names: Vec<SubscriptionName>| {
             delete_subscriptions(&self.front_tx, sub_names);
         };
-        self.exit_state.show(ctx, cleanup_subscriptions)
+        self.exit_state.show(ctx, sub_names, cleanup_subscriptions)
     }
 
     fn handle_exit(&mut self, frame: &mut eframe::Frame) {
