@@ -35,6 +35,11 @@ impl ExitState {
             return;
         }
 
+        if sub_names.is_empty() {
+            self.can_exit = true;
+            return;
+        }
+
         let title = if self.subscription_cleanup_state == SubscriptionCleanupState::Waiting {
             "Deleting Subscriptions..."
         } else {
