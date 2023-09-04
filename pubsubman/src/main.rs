@@ -16,7 +16,11 @@ async fn main() -> eframe::Result<()> {
 
     let args = Args::parse();
 
-    let native_options = eframe::NativeOptions::default();
+    let native_options = eframe::NativeOptions {
+        follow_system_theme: false,
+        ..Default::default()
+    };
+
     eframe::run_native(
         "pubsubman",
         native_options,
