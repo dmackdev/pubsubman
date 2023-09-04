@@ -1,14 +1,19 @@
+use std::time::Duration;
+
 use pubsubman_backend::{
     message::FrontendMessage,
     model::{PubsubMessageToPublish, SubscriptionName, TopicName},
 };
-use tokio::sync::mpsc::Sender;
+use tokio::{sync::mpsc::Sender, time::sleep};
 use tokio_util::sync::CancellationToken;
 
-pub fn refresh_topics(front_tx: &Sender<FrontendMessage>) {
+pub fn refresh_topics(front_tx: &Sender<FrontendMessage>, delay_millis: Option<u64>) {
     let front_tx = front_tx.to_owned();
 
     tokio::spawn(async move {
+        if let Some(delay_millis) = delay_millis {
+            sleep(Duration::from_millis(delay_millis)).await;
+        }
         let _ = front_tx.send(FrontendMessage::RefreshTopicsRequest).await;
     });
 }

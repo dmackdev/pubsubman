@@ -45,7 +45,7 @@ impl App {
             Backend::new(back_tx, front_rx, emulator_project_id).init();
         });
 
-        refresh_topics(&front_tx);
+        refresh_topics(&front_tx, None);
 
         let memory = cc
             .storage
@@ -69,7 +69,7 @@ impl App {
             Ok(message) => match message {
                 BackendMessage::TopicsUpdated(topic_names) => {
                     self.topic_names = topic_names;
-                    refresh_topics(&self.front_tx);
+                    refresh_topics(&self.front_tx, Some(5000));
                 }
                 BackendMessage::SubscriptionCreated(topic_name, sub_name) => {
                     self.memory.subscriptions.insert(topic_name, sub_name);
