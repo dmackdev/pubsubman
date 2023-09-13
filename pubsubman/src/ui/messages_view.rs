@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Local};
-use egui_json_tree::{DefaultExpand, JsonTree, JsonTreeResponse};
+use egui_json_tree::{DefaultExpand, JsonTree};
 use pubsubman_backend::{
     message::FrontendMessage,
     model::{PubsubMessage, SubscriptionName, TopicName},
@@ -142,19 +142,14 @@ impl MessagesView {
                                 .stick_to_bottom(true)
                                 .auto_shrink([false, true])
                                 .show(ui, |ui| {
-                                    let responses = render_messages_table(
+                                    render_messages_table(
                                         ui,
                                         selected_topic,
                                         column_settings,
                                         filtered_messages,
                                         &search_query,
+                                        search_query_changed,
                                     );
-
-                                    for response in responses {
-                                        if search_query_changed {
-                                            response.reset_expanded(ui);
-                                        }
-                                    }
                                 });
                         });
                 }
@@ -168,12 +163,10 @@ fn render_messages_table<'a, I>(
     column_settings: &ColumnSettings,
     messages: I,
     search_term: &str,
-) -> Vec<JsonTreeResponse>
-where
+    search_query_changed: bool,
+) where
     I: Iterator<Item = &'a PubsubMessage>,
 {
-    let mut json_tree_responses = vec![];
-
     let ColumnSettings {
         show_id,
         show_published_at,
@@ -247,12 +240,13 @@ where
                     })
                     .show(ui);
 
-                json_tree_responses.push(response);
+                if search_query_changed {
+                    response.reset_expanded(ui);
+                }
 
                 ui.end_row();
             }
         });
-    json_tree_responses
 }
 
 fn show_context_menu(ui: &mut egui::Ui, pointer: &String, value: &Value) {
