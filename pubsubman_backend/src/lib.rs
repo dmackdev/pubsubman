@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures_util::StreamExt;
 use google_cloud_gax::conn::Environment;
 use google_cloud_pubsub::{
@@ -7,7 +9,7 @@ use google_cloud_pubsub::{
 use message::{BackendMessage, FrontendMessage};
 use model::{SubscriptionName, TopicName};
 use tokio::{
-    runtime::Builder,
+    runtime::{Builder, Runtime},
     select,
     sync::mpsc::{Receiver, Sender},
 };
@@ -19,7 +21,11 @@ pub mod model;
 pub struct Backend {
     back_tx: Sender<BackendMessage>,
     front_rx: Receiver<FrontendMessage>,
-    emulator_project_id: Option<String>,
+    client: Arc<Client>,
+    // Store and reuse the same runtime (that created the client) for async operations,
+    // because the gPRC service appears to require the same runtime that created it:
+    // https://github.com/hyperium/tonic/issues/942#issuecomment-1313396286
+    rt: Runtime,
 }
 
 impl Backend {
@@ -28,28 +34,31 @@ impl Backend {
         front_rx: Receiver<FrontendMessage>,
         emulator_project_id: Option<String>,
     ) -> Self {
-        Self {
-            back_tx,
-            front_rx,
-            emulator_project_id,
-        }
-    }
-
-    pub fn init(&mut self) {
         let rt = Builder::new_multi_thread()
             .worker_threads(4)
             .enable_all()
             .build()
             .unwrap();
 
+        let client = rt.block_on(async { create_client(emulator_project_id).await });
+
+        Self {
+            back_tx,
+            front_rx,
+            client: Arc::new(client),
+            rt,
+        }
+    }
+
+    pub fn init(&mut self) {
+        let rt = &self.rt;
+
         while let Some(message) = self.front_rx.blocking_recv() {
             match message {
                 FrontendMessage::RefreshTopicsRequest => {
                     let back_tx = self.back_tx.clone();
-                    let emulator_project_id = self.emulator_project_id.clone();
-
+                    let client = self.client.clone();
                     rt.spawn(async move {
-                        let client = create_client(emulator_project_id).await;
                         let topics = client
                             .get_topics(None)
                             .await
@@ -66,11 +75,9 @@ impl Backend {
                 }
                 FrontendMessage::CreateSubscriptionRequest(topic_name) => {
                     let back_tx = self.back_tx.clone();
-                    let emulator_project_id = self.emulator_project_id.clone();
+                    let client = self.client.clone();
 
                     rt.spawn(async move {
-                        let client = create_client(emulator_project_id).await;
-
                         let sub_name = format!("pubsubman-subscription-{}", Uuid::new_v4());
 
                         let _subscription = client
@@ -94,17 +101,15 @@ impl Backend {
                 }
                 FrontendMessage::DeleteSubscriptions(sub_names) => {
                     let back_tx = self.back_tx.clone();
-                    let emulator_project_id = self.emulator_project_id.clone();
+                    let client = self.client.clone();
 
                     rt.spawn(async move {
                         let mut futures = vec![];
 
                         for sub_name in sub_names.into_iter() {
-                            let emulator_project_id = emulator_project_id.clone();
+                            let client = client.clone();
                             futures.push(async move {
-                                let client = create_client(emulator_project_id).await;
                                 let subscription = client.subscription(&sub_name.0);
-
                                 match subscription.delete(None).await {
                                     Ok(_) => Ok(sub_name),
                                     Err(_) => Err(sub_name),
@@ -122,10 +127,9 @@ impl Backend {
                 }
                 FrontendMessage::StreamMessages(topic_name, sub_name, cancel_token) => {
                     let back_tx = self.back_tx.clone();
-                    let emulator_project_id = self.emulator_project_id.clone();
+                    let client = self.client.clone();
 
                     rt.spawn(async move {
-                        let client = create_client(emulator_project_id).await;
                         let subscription = client.subscription(&sub_name.0);
 
                         let pull_messages_future = async move {
@@ -151,10 +155,9 @@ impl Backend {
                     });
                 }
                 FrontendMessage::PublishMessage(topic_name, message) => {
-                    let emulator_project_id = self.emulator_project_id.clone();
+                    let client = self.client.clone();
 
                     rt.spawn(async move {
-                        let client = create_client(emulator_project_id).await;
                         let topic = client.topic(&topic_name.0);
                         let publisher = topic.new_publisher(None);
                         let awaiter = publisher.publish(message.into()).await;
