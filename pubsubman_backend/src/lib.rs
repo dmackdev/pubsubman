@@ -104,18 +104,16 @@ impl Backend {
                     let client = self.client.clone();
 
                     rt.spawn(async move {
-                        let mut futures = vec![];
-
-                        for sub_name in sub_names.into_iter() {
+                        let futures = sub_names.into_iter().map(|sub_name| {
                             let client = client.clone();
-                            futures.push(async move {
+                            async move {
                                 let subscription = client.subscription(&sub_name.0);
                                 match subscription.delete(None).await {
                                     Ok(_) => Ok(sub_name),
                                     Err(_) => Err(sub_name),
                                 }
-                            });
-                        }
+                            }
+                        });
 
                         let results = futures::future::join_all(futures).await;
 
