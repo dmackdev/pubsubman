@@ -13,7 +13,7 @@ pub enum FrontendMessage {
 
 #[derive(Debug)]
 pub enum BackendMessage {
-    ClientInitialised,
+    ClientInitialised(String),
     TopicsUpdated(Vec<TopicName>),
     SubscriptionCreated(TopicName, SubscriptionName),
     MessageReceived(TopicName, PubsubMessage),
@@ -21,11 +21,16 @@ pub enum BackendMessage {
     Error(BackendError),
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum BackendError {
+    #[error("Failed to initialise client.")]
     ClientInitFailed,
+    #[error("Failed to get topics.")]
     GetTopicsFailed,
+    #[error("Failed to create Subscription for {0}.")]
     CreateSubscriptionFailed(TopicName),
+    #[error("Failed to get messages from {0}.")]
     StreamMessagesFailed(TopicName, SubscriptionName),
+    #[error("Failed to publish message to {0}.")]
     PublishMessageFailed(TopicName),
 }
