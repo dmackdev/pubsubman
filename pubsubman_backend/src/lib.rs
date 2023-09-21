@@ -103,7 +103,7 @@ impl Backend {
                     BackendMessage::TopicsUpdated(topics.into_iter().map(TopicName).collect())
                 })
                 .unwrap_or_else(|status| {
-                    println!("{}", status);
+                    eprintln!("{}", status);
                     BackendMessage::Error(BackendError::GetTopicsFailed)
                 });
 
@@ -130,7 +130,7 @@ impl Backend {
                     BackendMessage::SubscriptionCreated(topic_name, SubscriptionName(fq_sub_name))
                 }
                 Err(status) => {
-                    println!("{}", status);
+                    eprintln!("{}", status);
                     BackendMessage::Error(BackendError::CreateSubscriptionFailed(topic_name))
                 }
             };
@@ -151,7 +151,7 @@ impl Backend {
                     match subscription.delete(None).await {
                         Ok(_) => Ok(sub_name),
                         Err(status) => {
-                            println!("{}", status);
+                            eprintln!("{}", status);
                             Err(sub_name)
                         }
                     }
@@ -195,7 +195,7 @@ impl Backend {
                         }
                     }
                     Err(status) => {
-                        println!("{}", status);
+                        eprintln!("{}", status);
                         back_tx
                             .send(BackendMessage::Error(BackendError::StreamMessagesFailed(
                                 topic_name, sub_name,
@@ -223,7 +223,7 @@ impl Backend {
             let awaiter = publisher.publish(message.into()).await;
 
             if let Err(status) = awaiter.get().await {
-                println!("{}", status);
+                eprintln!("{}", status);
                 back_tx
                     .send(BackendMessage::Error(BackendError::PublishMessageFailed(
                         topic_name,
