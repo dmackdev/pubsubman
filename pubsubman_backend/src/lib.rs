@@ -84,7 +84,10 @@ impl Backend {
                 .map(|topics| {
                     BackendMessage::TopicsUpdated(topics.into_iter().map(TopicName).collect())
                 })
-                .unwrap_or_else(|_| BackendMessage::Error(BackendError::GetTopicsFailed));
+                .unwrap_or_else(|status| {
+                    println!("{}", status);
+                    BackendMessage::Error(BackendError::GetTopicsFailed)
+                });
 
             back_tx.send(message).await.unwrap();
         });
@@ -108,7 +111,10 @@ impl Backend {
                     let fq_sub_name = subscription.fully_qualified_name().to_owned();
                     BackendMessage::SubscriptionCreated(topic_name, SubscriptionName(fq_sub_name))
                 }
-                Err(_) => BackendMessage::Error(BackendError::CreateSubscriptionFailed(topic_name)),
+                Err(status) => {
+                    println!("{}", status);
+                    BackendMessage::Error(BackendError::CreateSubscriptionFailed(topic_name))
+                }
             };
 
             back_tx.send(message).await.unwrap();
@@ -126,7 +132,10 @@ impl Backend {
                     let subscription = client.subscription(&sub_name.0);
                     match subscription.delete(None).await {
                         Ok(_) => Ok(sub_name),
-                        Err(_) => Err(sub_name),
+                        Err(status) => {
+                            println!("{}", status);
+                            Err(sub_name)
+                        }
                     }
                 }
             });
@@ -167,12 +176,15 @@ impl Backend {
                                 .unwrap();
                         }
                     }
-                    Err(_) => back_tx
-                        .send(BackendMessage::Error(BackendError::StreamMessagesFailed(
-                            topic_name, sub_name,
-                        )))
-                        .await
-                        .unwrap(),
+                    Err(status) => {
+                        println!("{}", status);
+                        back_tx
+                            .send(BackendMessage::Error(BackendError::StreamMessagesFailed(
+                                topic_name, sub_name,
+                            )))
+                            .await
+                            .unwrap()
+                    }
                 };
             };
 
@@ -192,7 +204,8 @@ impl Backend {
             let publisher = topic.new_publisher(None);
             let awaiter = publisher.publish(message.into()).await;
 
-            if let Err(_) = awaiter.get().await {
+            if let Err(status) = awaiter.get().await {
+                println!("{}", status);
                 back_tx
                     .send(BackendMessage::Error(BackendError::PublishMessageFailed(
                         topic_name,
