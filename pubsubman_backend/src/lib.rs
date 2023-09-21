@@ -100,7 +100,7 @@ impl Backend {
         self.rt.spawn(async move {
             let sub_name = format!("pubsubman-subscription-{}", Uuid::new_v4());
 
-            let _subscription = client
+            let subscription = client
                 .create_subscription(
                     &sub_name,
                     &topic_name.0,
@@ -113,7 +113,7 @@ impl Backend {
             back_tx
                 .send(BackendMessage::SubscriptionCreated(
                     topic_name,
-                    SubscriptionName(sub_name),
+                    SubscriptionName(subscription.fully_qualified_name().to_owned()),
                 ))
                 .await
                 .unwrap();
