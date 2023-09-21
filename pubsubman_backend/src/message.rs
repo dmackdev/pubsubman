@@ -17,4 +17,13 @@ pub enum BackendMessage {
     SubscriptionCreated(TopicName, SubscriptionName),
     MessageReceived(TopicName, PubsubMessage),
     SubscriptionsDeleted(Vec<Result<SubscriptionName, SubscriptionName>>),
+    Error(BackendError),
+}
+
+#[derive(Debug)]
+pub enum BackendError {
+    GetTopicsFailed,
+    CreateSubscriptionFailed(TopicName),
+    StreamMessagesFailed(TopicName, SubscriptionName),
+    PublishMessageFailed(TopicName),
 }

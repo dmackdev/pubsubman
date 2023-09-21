@@ -91,8 +91,9 @@ impl App {
 
                     self.exit_state.subscription_cleanup_state = SubscriptionCleanupState::Complete;
                 }
+                BackendMessage::Error(_) => {}
             },
-            Err(_err) => {} //println!("{:?}", err),
+            Err(_err) => {}
         }
     }
 
