@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{error::Error, sync::Arc};
 
 use futures_util::StreamExt;
 use google_cloud_gax::conn::Environment;
@@ -34,20 +34,38 @@ impl Backend {
         back_tx: Sender<BackendMessage>,
         front_rx: Receiver<FrontendMessage>,
         emulator_project_id: Option<String>,
-    ) -> Self {
+    ) -> Result<Self, Box<dyn Error>> {
         let rt = Builder::new_multi_thread()
             .worker_threads(4)
             .enable_all()
             .build()
             .unwrap();
 
-        let client = rt.block_on(async { create_client(emulator_project_id).await });
-
-        Self {
-            back_tx,
-            front_rx,
-            client: Arc::new(client),
-            rt,
+        match rt.block_on(async { create_client(emulator_project_id).await }) {
+            Ok(client) => {
+                let back_tx_clone = back_tx.clone();
+                rt.spawn(async move {
+                    back_tx_clone
+                        .send(BackendMessage::ClientInitialised)
+                        .await
+                        .unwrap();
+                });
+                Ok(Self {
+                    back_tx,
+                    front_rx,
+                    client: Arc::new(client),
+                    rt,
+                })
+            }
+            Err(err) => {
+                rt.spawn(async move {
+                    back_tx
+                        .send(BackendMessage::Error(BackendError::ClientInitFailed))
+                        .await
+                        .unwrap();
+                });
+                Err(err)
+            }
         }
     }
 
@@ -217,8 +235,8 @@ impl Backend {
     }
 }
 
-async fn create_client(emulator_project_id: Option<String>) -> Client {
-    let mut config = ClientConfig::default().with_auth().await.unwrap();
+async fn create_client(emulator_project_id: Option<String>) -> Result<Client, Box<dyn Error>> {
+    let mut config = ClientConfig::default().with_auth().await?;
 
     if let (Environment::Emulator(_), Some(emulator_project_id)) =
         (&config.environment, emulator_project_id)
@@ -226,5 +244,5 @@ async fn create_client(emulator_project_id: Option<String>) -> Client {
         config.project_id = Some(emulator_project_id);
     }
 
-    Client::new(config).await.unwrap()
+    Ok(Client::new(config).await?)
 }

@@ -13,6 +13,7 @@ pub enum FrontendMessage {
 
 #[derive(Debug)]
 pub enum BackendMessage {
+    ClientInitialised,
     TopicsUpdated(Vec<TopicName>),
     SubscriptionCreated(TopicName, SubscriptionName),
     MessageReceived(TopicName, PubsubMessage),
@@ -22,6 +23,7 @@ pub enum BackendMessage {
 
 #[derive(Debug)]
 pub enum BackendError {
+    ClientInitFailed,
     GetTopicsFailed,
     CreateSubscriptionFailed(TopicName),
     StreamMessagesFailed(TopicName, SubscriptionName),

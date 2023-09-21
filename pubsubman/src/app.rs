@@ -42,7 +42,9 @@ impl App {
         let (back_tx, back_rx) = tokio::sync::mpsc::channel(10);
 
         std::thread::spawn(|| {
-            Backend::new(back_tx, front_rx, emulator_project_id).init();
+            if let Ok(mut backend) = Backend::new(back_tx, front_rx, emulator_project_id) {
+                backend.init();
+            };
         });
 
         refresh_topics(&front_tx, None);
@@ -67,6 +69,7 @@ impl App {
     fn handle_backend_message(&mut self) {
         match self.back_rx.try_recv() {
             Ok(message) => match message {
+                BackendMessage::ClientInitialised => {}
                 BackendMessage::TopicsUpdated(topic_names) => {
                     self.topic_names = topic_names;
                     refresh_topics(&self.front_tx, Some(5000));
