@@ -42,11 +42,11 @@ impl Backend {
             .unwrap();
 
         match rt.block_on(async { create_client(emulator_project_id).await }) {
-            Ok(client) => {
+            Ok((client, project_id)) => {
                 let back_tx_clone = back_tx.clone();
                 rt.spawn(async move {
                     back_tx_clone
-                        .send(BackendMessage::ClientInitialised)
+                        .send(BackendMessage::ClientInitialised(project_id))
                         .await
                         .unwrap();
                 });
@@ -235,7 +235,9 @@ impl Backend {
     }
 }
 
-async fn create_client(emulator_project_id: Option<String>) -> Result<Client, Box<dyn Error>> {
+async fn create_client(
+    emulator_project_id: Option<String>,
+) -> Result<(Client, String), Box<dyn Error>> {
     let mut config = ClientConfig::default().with_auth().await?;
 
     if let (Environment::Emulator(_), Some(emulator_project_id)) =
@@ -244,5 +246,7 @@ async fn create_client(emulator_project_id: Option<String>) -> Result<Client, Bo
         config.project_id = Some(emulator_project_id);
     }
 
-    Ok(Client::new(config).await?)
+    let project_id = config.project_id.clone();
+
+    Ok((Client::new(config).await?, project_id.unwrap()))
 }

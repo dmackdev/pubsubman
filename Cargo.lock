@@ -981,6 +981,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-notify"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d57ed9c398e24c1b9faf2c52cdc305dd29cb1d9dfa12a0166d254582bc47727a"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "egui-winit"
 version = "0.22.0"
 source = "git+https://github.com/emilk/egui?rev=23ce4e7#23ce4e70caea7feb48909311775b0de5476248b1"
@@ -2559,6 +2568,7 @@ dependencies = [
  "clap",
  "eframe",
  "egui",
+ "egui-notify",
  "egui_extras",
  "egui_json_tree",
  "env_logger",
@@ -2581,6 +2591,7 @@ dependencies = [
  "google-cloud-googleapis",
  "google-cloud-pubsub",
  "serde",
+ "thiserror",
  "tokio",
  "tokio-util",
  "uuid",

@@ -11,6 +11,7 @@ use crate::{
     actions::{create_subscription, delete_subscriptions, refresh_topics},
     column_settings::ColumnSettings,
     exit_state::{ExitState, SubscriptionCleanupState},
+    notifications::Notifications,
     settings::Settings,
     ui::{render_topic_name, MessagesView, PublishView},
 };
@@ -33,6 +34,7 @@ pub struct App {
     memory: Memory,
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
+    notifications: Notifications,
 }
 
 impl App {
@@ -63,15 +65,19 @@ impl App {
             memory,
             front_tx,
             back_rx,
+            notifications: Notifications::default(),
         }
     }
 
     fn handle_backend_message(&mut self) {
         match self.back_rx.try_recv() {
             Ok(message) => match message {
-                BackendMessage::ClientInitialised => {}
+                BackendMessage::ClientInitialised(project_id) => self
+                    .notifications
+                    .success(format!("Successfully authenticated to: {}.", project_id)),
                 BackendMessage::TopicsUpdated(topic_names) => {
                     self.topic_names = topic_names;
+
                     refresh_topics(&self.front_tx, Some(5000));
                 }
                 BackendMessage::SubscriptionCreated(topic_name, sub_name) => {
@@ -94,7 +100,7 @@ impl App {
 
                     self.exit_state.subscription_cleanup_state = SubscriptionCleanupState::Complete;
                 }
-                BackendMessage::Error(_) => {}
+                BackendMessage::Error(err) => self.notifications.error(err),
             },
             Err(_err) => {}
         }
@@ -282,6 +288,7 @@ impl eframe::App for App {
         self.render_topics_panel(ctx);
         self.render_central_panel(ctx);
         self.handle_exit(ctx, frame);
+        self.notifications.show(ctx);
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
