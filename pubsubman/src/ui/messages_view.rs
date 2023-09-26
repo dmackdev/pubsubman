@@ -224,18 +224,13 @@ fn render_messages_table<'a, I>(
                     ui.label(format_attributes(&message.attributes));
                 }
 
-                let value: Value = match serde_json::from_str(&message.data) {
-                    Ok(val) => val,
-                    Err(_) => Value::String(message.data.clone()),
-                };
-
-                let response = JsonTree::new(&message.id, &value)
+                let response = JsonTree::new(&message.id, &message.data_json)
                     .default_expand(DefaultExpand::SearchResults(search_term))
                     .response_callback(|response, pointer| {
                         response
                             .on_hover_cursor(egui::CursorIcon::ContextMenu)
                             .context_menu(|ui| {
-                                show_context_menu(ui, pointer, &value);
+                                show_context_menu(ui, pointer, &message.data_json);
                             });
                     })
                     .show(ui);

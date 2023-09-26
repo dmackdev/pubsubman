@@ -17,6 +17,6 @@ env_logger = "0.10"
 log = "0.4"
 pubsubman_backend = { version = "0.1.0", path = "../pubsubman_backend" }
 serde = { workspace = true }
-serde_json = "1.0.104"
+serde_json = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
