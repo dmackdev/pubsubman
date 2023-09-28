@@ -8,11 +8,16 @@ rust-version = "1.71"
 [dependencies]
 chrono = { workspace = true }
 clap = { version = "4.4.0", features = ["derive"] }
-eframe = { workspace = true }
-egui = { workspace = true }
-egui-notify = "0.9.0"
-egui_extras = { workspace = true }
-egui_json_tree = { git = "https://github.com/dmackdev/egui_json_tree", branch = "master" }
+eframe = { version = "0.23", default-features = false, features = [
+  "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
+  "default_fonts", # Embed the default egui fonts.
+  "glow",          # Use the glow rendering backend. Alternative: "wgpu".
+  "persistence",   # Enable restoring app state when restarting the app.
+] }
+egui = "0.23"
+egui-notify = "0.10.0"
+egui_extras = "0.23"
+egui_json_tree = "0.1.0"
 env_logger = "0.10"
 log = "0.4"
 pubsubman_backend = { version = "0.1.0", path = "../pubsubman_backend" }
