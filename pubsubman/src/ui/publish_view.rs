@@ -62,7 +62,7 @@ impl PublishView {
                                         .hint_text("Value"),
                                 );
 
-                                if ui.button("✖").clicked() {
+                                if ui.button("🗑").clicked() {
                                     attr_idx_to_delete = Some(idx);
                                 }
 
