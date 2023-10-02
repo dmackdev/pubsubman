@@ -60,10 +60,15 @@ impl MessagesView {
                             .on_disabled_hover_text("Disable Stream mode to Pull messages.");
                     });
 
-                    let stream_mode_toggle =
-                        ui.toggle_value(&mut self.stream_messages_enabled, "Stream");
+                    let stream_mode_toggle = ui.add(
+                        egui::Button::new("Stream")
+                            .selected(self.stream_messages_enabled)
+                            .rounding(ui.visuals().widgets.active.rounding),
+                    );
 
-                    if stream_mode_toggle.changed() {
+                    if stream_mode_toggle.clicked() {
+                        self.stream_messages_enabled = !self.stream_messages_enabled;
+
                         if self.stream_messages_enabled {
                             let cancel_token = CancellationToken::new();
 
