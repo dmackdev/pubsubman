@@ -42,48 +42,41 @@ impl PublishView {
                 let mut attr_idx_to_delete = None;
 
                 if !self.attributes.is_empty() {
-                    let table = egui_extras::TableBuilder::new(ui)
-                        .striped(false)
-                        .cell_layout(egui::Layout::centered_and_justified(
-                            egui::Direction::LeftToRight,
-                        ))
-                        .column(egui_extras::Column::exact(100.0))
-                        .column(egui_extras::Column::exact(100.0))
-                        .column(egui_extras::Column::auto());
+                    egui::Grid::new(format!("{}-attributes-form", selected_topic.0))
+                        .min_col_width(100.0)
+                        .num_columns(3)
+                        .spacing((0.0, 4.0))
+                        .show(ui, |ui| {
+                            for (idx, (id, val)) in self.attributes.iter_mut().enumerate() {
+                                ui.add(
+                                    egui::TextEdit::singleline(id)
+                                        .desired_width(100.0)
+                                        .code_editor()
+                                        .hint_text("Key"),
+                                );
 
-                    table.body(|mut body| {
-                        for (idx, (id, val)) in self.attributes.iter_mut().enumerate() {
-                            body.row(18.0, |mut row| {
-                                row.col(|ui| {
-                                    ui.add(
-                                        egui::TextEdit::singleline(id)
-                                            .code_editor()
-                                            .desired_width(f32::INFINITY)
-                                            .hint_text("Key"),
-                                    );
-                                });
+                                ui.add(
+                                    egui::TextEdit::singleline(val)
+                                        .desired_width(100.0)
+                                        .code_editor()
+                                        .hint_text("Value"),
+                                );
 
-                                row.col(|ui| {
-                                    ui.add(
-                                        egui::TextEdit::singleline(val)
-                                            .code_editor()
-                                            .desired_width(f32::INFINITY)
-                                            .hint_text("Value"),
-                                    );
-                                });
+                                if ui.button("✖").clicked() {
+                                    attr_idx_to_delete = Some(idx);
+                                }
 
-                                row.col(|ui| {
-                                    if ui.button("✖").clicked() {
-                                        attr_idx_to_delete = Some(idx);
-                                    }
-                                });
-                            });
-                        }
-                    });
+                                ui.end_row();
+                            }
+                        });
                 }
 
                 if let Some(i) = attr_idx_to_delete {
                     self.attributes.remove(i);
+                }
+
+                if !self.attributes.is_empty() {
+                    ui.add_space(4.0);
                 }
 
                 if ui.button("➕").clicked() {
