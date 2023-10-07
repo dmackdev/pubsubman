@@ -35,7 +35,14 @@ impl PublishView {
                 );
             });
 
-        egui::CollapsingHeader::new("Attributes")
+        let mut header_text = egui::RichText::new("Attributes");
+        let attributes_valid = self.attributes.is_valid();
+
+        if !attributes_valid {
+            header_text = header_text.color(ui.visuals().error_fg_color);
+        };
+
+        egui::CollapsingHeader::new(header_text)
             .id_source(format!("{}-attributes", selected_topic.0))
             .default_open(false)
             .show(ui, |ui| {
@@ -60,7 +67,10 @@ impl PublishView {
 
         ui.add_space(8.0);
 
-        if ui.button("Publish").clicked() {
+        if ui
+            .add_enabled(attributes_valid, egui::Button::new("Publish"))
+            .clicked()
+        {
             publish_message(front_tx, selected_topic, self.into())
         }
     }
@@ -107,15 +117,22 @@ impl Attributes {
     }
 
     fn show(&mut self, ui: &mut egui::Ui) {
+        let key_indices_map = self.key_indices_map();
         let mut attr_idx_to_delete = None;
 
         for (idx, (id, val)) in self.0.iter_mut().enumerate() {
-            ui.add(
-                egui::TextEdit::singleline(id)
-                    .desired_width(100.0)
-                    .code_editor()
-                    .hint_text("Key"),
-            );
+            let is_valid = key_indices_map
+                .get(id)
+                .is_some_and(|indices| indices.len() < 2);
+
+            ui.validity_frame(is_valid).show(ui, |ui| {
+                ui.add(
+                    egui::TextEdit::singleline(id)
+                        .desired_width(100.0)
+                        .code_editor()
+                        .hint_text("Key"),
+                );
+            });
 
             ui.add(
                 egui::TextEdit::singleline(val)
@@ -134,5 +151,30 @@ impl Attributes {
         if let Some(i) = attr_idx_to_delete {
             self.0.remove(i);
         }
+    }
+}
+
+trait ValidityFrame {
+    fn validity_frame(&self, is_valid: bool) -> egui::Frame;
+}
+
+impl ValidityFrame for &mut egui::Ui {
+    fn validity_frame(&self, is_valid: bool) -> egui::Frame {
+        let (stroke, rounding) = if is_valid {
+            (egui::Stroke::NONE, egui::Rounding::ZERO)
+        } else {
+            (
+                egui::Stroke {
+                    width: 1.0,
+                    color: self.visuals().error_fg_color,
+                },
+                self.visuals().widgets.hovered.rounding,
+            )
+        };
+
+        egui::Frame::none()
+            .stroke(stroke)
+            .inner_margin(2.0)
+            .rounding(rounding)
     }
 }
