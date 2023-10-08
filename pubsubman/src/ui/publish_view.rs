@@ -36,7 +36,8 @@ impl PublishView {
             });
 
         let mut header_text = egui::RichText::new("Attributes");
-        let attributes_valid = self.attributes.is_valid();
+        let key_indices_map = self.attributes.key_indices_map();
+        let attributes_valid = key_indices_map.iter().all(|(_, indices)| indices.len() < 2);
 
         if !attributes_valid {
             header_text = header_text.color(ui.visuals().error_fg_color);
@@ -52,7 +53,11 @@ impl PublishView {
                         .num_columns(3)
                         .spacing((0.0, 4.0))
                         .show(ui, |ui| {
-                            self.attributes.show(ui);
+                            self.attributes.show(ui, |key| {
+                                key_indices_map
+                                    .get(key)
+                                    .is_some_and(|indices| indices.len() < 2)
+                            });
                         });
                 }
 
@@ -110,24 +115,15 @@ impl Attributes {
         self.0.push(attr);
     }
 
-    fn is_valid(&self) -> bool {
-        self.key_indices_map()
-            .values()
-            .all(|indices| indices.len() < 2)
-    }
-
-    fn show(&mut self, ui: &mut egui::Ui) {
-        let key_indices_map = self.key_indices_map();
+    fn show(&mut self, ui: &mut egui::Ui, is_key_valid: impl Fn(&str) -> bool) {
         let mut attr_idx_to_delete = None;
 
-        for (idx, (id, val)) in self.0.iter_mut().enumerate() {
-            let is_valid = key_indices_map
-                .get(id)
-                .is_some_and(|indices| indices.len() < 2);
+        for (idx, (key, val)) in self.0.iter_mut().enumerate() {
+            let is_valid = is_key_valid(key);
 
             ui.validity_frame(is_valid).show(ui, |ui| {
                 ui.add(
-                    egui::TextEdit::singleline(id)
+                    egui::TextEdit::singleline(key)
                         .desired_width(100.0)
                         .code_editor()
                         .hint_text("Key"),
