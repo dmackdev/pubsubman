@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use pubsubman_backend::{
     message::FrontendMessage,
@@ -36,10 +36,10 @@ impl PublishView {
             });
 
         let mut header_text = egui::RichText::new("Attributes");
-        let key_indices_map = self.attributes.key_indices_map();
-        let attributes_valid = key_indices_map.iter().all(|(_, indices)| indices.len() < 2);
+        let attributes_key_count_map = self.attributes.key_count_map();
+        let all_attributes_valid = attributes_key_count_map.iter().all(|(_, count)| *count < 2);
 
-        if !attributes_valid {
+        if !all_attributes_valid {
             header_text = header_text.color(ui.visuals().error_fg_color);
         };
 
@@ -54,9 +54,9 @@ impl PublishView {
                         .spacing((0.0, 4.0))
                         .show(ui, |ui| {
                             self.attributes.show(ui, |key| {
-                                key_indices_map
+                                attributes_key_count_map
                                     .get(key)
-                                    .is_some_and(|indices| indices.len() < 2)
+                                    .is_some_and(|count| *count < 2)
                             });
                         });
                 }
@@ -73,7 +73,7 @@ impl PublishView {
         ui.add_space(8.0);
 
         if ui
-            .add_enabled(attributes_valid, egui::Button::new("Publish"))
+            .add_enabled(all_attributes_valid, egui::Button::new("Publish"))
             .clicked()
         {
             publish_message(front_tx, selected_topic, self.into())
@@ -94,17 +94,14 @@ impl From<&mut PublishView> for PubsubMessageToPublish {
 struct Attributes(Vec<(String, String)>);
 
 impl Attributes {
-    fn key_indices_map(&self) -> HashMap<String, HashSet<usize>> {
-        let mut index_map = HashMap::new();
+    fn key_count_map(&self) -> HashMap<String, usize> {
+        let mut key_count_map = HashMap::new();
 
-        for (index, (value, _)) in self.0.iter().enumerate() {
-            index_map
-                .entry(value.clone())
-                .or_insert_with(HashSet::new)
-                .insert(index);
+        for (key, _) in self.0.iter() {
+            *key_count_map.entry(key.clone()).or_insert_with(|| 0) += 1;
         }
 
-        index_map
+        key_count_map
     }
 
     fn is_empty(&self) -> bool {
