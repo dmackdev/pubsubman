@@ -36,7 +36,7 @@ impl PublishView {
             });
 
         let mut header_text = egui::RichText::new("Attributes");
-        let attributes_key_count_map = self.attributes.key_count_map();
+        let attributes_key_count_map = key_count_map(ui.ctx(), &self.attributes);
         let all_attributes_valid = attributes_key_count_map.iter().all(|(_, count)| *count < 2);
 
         if !all_attributes_valid {
@@ -90,20 +90,10 @@ impl From<&mut PublishView> for PubsubMessageToPublish {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Hash)]
 struct Attributes(Vec<(String, String)>);
 
 impl Attributes {
-    fn key_count_map(&self) -> HashMap<String, usize> {
-        let mut key_count_map = HashMap::new();
-
-        for (key, _) in self.0.iter() {
-            *key_count_map.entry(key.clone()).or_insert_with(|| 0) += 1;
-        }
-
-        key_count_map
-    }
-
     fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
@@ -145,6 +135,38 @@ impl Attributes {
             self.0.remove(i);
         }
     }
+}
+
+#[derive(Default)]
+struct AttributesKeyCounter;
+
+impl AttributesKeyCounter {
+    fn key_count_map(&self, attributes: &Attributes) -> HashMap<String, usize> {
+        let mut key_count_map = HashMap::new();
+
+        for (key, _) in attributes.0.iter() {
+            *key_count_map.entry(key.clone()).or_insert_with(|| 0) += 1;
+        }
+
+        key_count_map
+    }
+}
+
+fn key_count_map(ctx: &egui::Context, attributes: &Attributes) -> HashMap<String, usize> {
+    impl egui::util::cache::ComputerMut<&Attributes, HashMap<String, usize>> for AttributesKeyCounter {
+        fn compute(&mut self, attributes: &Attributes) -> HashMap<String, usize> {
+            self.key_count_map(attributes)
+        }
+    }
+
+    type AttributesKeyCounterCache =
+        egui::util::cache::FrameCache<HashMap<String, usize>, AttributesKeyCounter>;
+
+    ctx.memory_mut(|mem| {
+        mem.caches
+            .cache::<AttributesKeyCounterCache>()
+            .get(attributes)
+    })
 }
 
 trait ValidityFrame {
