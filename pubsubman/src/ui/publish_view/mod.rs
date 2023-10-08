@@ -6,9 +6,11 @@ use pubsubman_backend::{
 };
 use tokio::sync::mpsc::Sender;
 
-use crate::actions::publish_message;
+use crate::{actions::publish_message, ui::publish_view::attributes::AttributesKeyCounter};
 
-use super::validity_frame::ValidityFrame;
+use self::attributes::Attributes;
+
+mod attributes;
 
 #[derive(Default)]
 pub struct PublishView {
@@ -85,72 +87,7 @@ impl PublishView {
 
 impl From<&mut PublishView> for PubsubMessageToPublish {
     fn from(val: &mut PublishView) -> Self {
-        Self::new(
-            val.data.clone(),
-            HashMap::from_iter(val.attributes.0.clone()),
-        )
-    }
-}
-
-#[derive(Default, Hash)]
-struct Attributes(Vec<(String, String)>);
-
-impl Attributes {
-    fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    fn push(&mut self, attr: (String, String)) {
-        self.0.push(attr);
-    }
-
-    fn show(&mut self, ui: &mut egui::Ui, is_key_valid: impl Fn(&str) -> bool) {
-        let mut attr_idx_to_delete = None;
-
-        for (idx, (key, val)) in self.0.iter_mut().enumerate() {
-            let is_valid = is_key_valid(key);
-
-            ui.validity_frame(is_valid).show(ui, |ui| {
-                ui.add(
-                    egui::TextEdit::singleline(key)
-                        .desired_width(100.0)
-                        .code_editor()
-                        .hint_text("Key"),
-                );
-            });
-
-            ui.add(
-                egui::TextEdit::singleline(val)
-                    .desired_width(100.0)
-                    .code_editor()
-                    .hint_text("Value"),
-            );
-
-            if ui.button("🗑").clicked() {
-                attr_idx_to_delete = Some(idx);
-            }
-
-            ui.end_row();
-        }
-
-        if let Some(i) = attr_idx_to_delete {
-            self.0.remove(i);
-        }
-    }
-}
-
-#[derive(Default)]
-struct AttributesKeyCounter;
-
-impl AttributesKeyCounter {
-    fn key_count_map(&self, attributes: &Attributes) -> HashMap<String, usize> {
-        let mut key_count_map = HashMap::new();
-
-        for (key, _) in attributes.0.iter() {
-            *key_count_map.entry(key.clone()).or_insert_with(|| 0) += 1;
-        }
-
-        key_count_map
+        Self::new(val.data.clone(), (&val.attributes).into())
     }
 }
 
