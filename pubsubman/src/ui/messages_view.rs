@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Write;
 
 use chrono::{DateTime, Local};
 use egui_json_tree::{DefaultExpand, JsonTree};
@@ -280,13 +281,14 @@ fn format_attributes(attributes: &HashMap<String, String>) -> String {
     attributes
         .iter()
         .enumerate()
-        .map(|(i, (k, v))| {
-            format!(
+        .fold(String::new(), |mut acc, (i, (k, v))| {
+            let _ = write!(
+                acc,
                 "{}:{}{}",
                 k,
                 v,
                 (if i == attributes.len() - 1 { "" } else { ", " })
-            )
+            );
+            acc
         })
-        .collect()
 }
