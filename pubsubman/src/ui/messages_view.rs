@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-use std::fmt::Write;
-
 use chrono::{DateTime, Local};
 use egui_json_tree::{DefaultExpand, JsonTree};
 use pubsubman_backend::{
@@ -24,6 +21,7 @@ pub struct MessagesView {
 }
 
 impl MessagesView {
+    #[allow(clippy::too_many_arguments)]
     pub fn show(
         &mut self,
         ui: &mut egui::Ui,
@@ -32,6 +30,7 @@ impl MessagesView {
         sub_name: &SubscriptionName,
         column_settings: &mut ColumnSettings,
         messages: &[PubsubMessage],
+        on_message_id_click: impl FnMut(usize),
     ) {
         let search_query = self.search_query.to_ascii_lowercase();
         let filtered_messages = messages
@@ -155,6 +154,7 @@ impl MessagesView {
                                         filtered_messages,
                                         &search_query,
                                         search_query_changed,
+                                        on_message_id_click,
                                     );
                                 });
                         });
@@ -170,35 +170,27 @@ fn render_messages_table<'a, I>(
     messages: I,
     search_term: &str,
     search_query_changed: bool,
+    mut on_message_id_click: impl FnMut(usize),
 ) where
     I: Iterator<Item = &'a PubsubMessage>,
 {
-    let ColumnSettings {
-        show_id,
-        show_published_at,
-        show_attributes,
-    } = *column_settings;
+    let ColumnSettings { show_published_at } = *column_settings;
 
-    let num_columns = [show_id, show_published_at, show_attributes].iter().fold(
-        1, // Data column will always be present
-        |acc, col_enabled| if *col_enabled { acc + 1 } else { acc },
-    );
+    let mut num_columns = 2; // ID and Data columns will always be shown.
+
+    if show_published_at {
+        num_columns += 1;
+    }
 
     egui::Grid::new(&selected_topic.0)
         .striped(true)
         .num_columns(num_columns)
         .spacing((25.0, 8.0))
         .show(ui, |ui| {
-            if show_id {
-                ui.label("ID");
-            }
+            ui.label("ID");
 
             if show_published_at {
                 ui.label("Published at");
-            }
-
-            if show_attributes {
-                ui.label("Attributes");
             }
 
             // Let Data column take up all remaining space.
@@ -213,9 +205,9 @@ fn render_messages_table<'a, I>(
 
             ui.end_row();
 
-            for message in messages {
-                if show_id {
-                    ui.label(&message.id);
+            for (idx, message) in messages.enumerate() {
+                if ui.link(&message.id).clicked() {
+                    on_message_id_click(idx);
                 }
 
                 if show_published_at {
@@ -224,10 +216,6 @@ fn render_messages_table<'a, I>(
 
                         ui.label(format!("{}", local_publish_time.format("%d/%m/%Y %H:%M")));
                     }
-                }
-
-                if show_attributes {
-                    ui.label(format_attributes(&message.attributes));
                 }
 
                 let response = JsonTree::new(&message.id, &message.data_json)
@@ -275,20 +263,4 @@ fn show_context_menu(ui: &mut egui::Ui, pointer: &String, value: &Value) {
             ui.close_menu();
         }
     });
-}
-
-fn format_attributes(attributes: &HashMap<String, String>) -> String {
-    attributes
-        .iter()
-        .enumerate()
-        .fold(String::new(), |mut acc, (i, (k, v))| {
-            let _ = write!(
-                acc,
-                "{}:{}{}",
-                k,
-                v,
-                (if i == attributes.len() - 1 { "" } else { ", " })
-            );
-            acc
-        })
 }

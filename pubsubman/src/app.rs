@@ -1,10 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
+use chrono::{DateTime, Local};
+use egui_json_tree::{DefaultExpand, JsonTree};
 use pubsubman_backend::{
     message::{BackendMessage, FrontendMessage},
     model::{PubsubMessage, SubscriptionName, TopicName},
     Backend,
 };
+use serde_json::{Map, Value};
 use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{
@@ -35,6 +38,7 @@ pub struct App {
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
     notifications: Notifications,
+    selected_message: Option<(TopicName, usize)>,
 }
 
 impl App {
@@ -66,6 +70,7 @@ impl App {
             front_tx,
             back_rx,
             notifications: Notifications::default(),
+            selected_message: None,
         }
     }
 
@@ -165,6 +170,8 @@ impl App {
             cancel_token.cancel();
         }
 
+        self.selected_message.take();
+
         self.selected_topic = Some(topic_name.clone());
 
         if !self.memory.subscriptions.contains_key(topic_name) {
@@ -181,6 +188,100 @@ impl App {
     fn render_central_panel(&mut self, ctx: &egui::Context) {
         match &self.selected_topic {
             Some(selected_topic) => {
+                let selected_message =
+                    &self
+                        .selected_message
+                        .as_ref()
+                        .and_then(|(topic_name, idx)| {
+                            self.memory
+                                .messages
+                                .get(topic_name)
+                                .and_then(|messages| messages.get(*idx))
+                        });
+
+                egui::SidePanel::right("selected_message")
+                    .frame(egui::Frame::none())
+                    .resizable(true)
+                    .show_animated(ctx, selected_message.is_some(), |ui| {
+                        if let Some(message) = selected_message {
+                            egui::TopBottomPanel::top("selected_message_top_panel")
+                                .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
+                                .show_inside(ui, |ui| {
+                                    ui.with_layout(
+                                        egui::Layout::left_to_right(egui::Align::Center),
+                                        |ui| {
+                                            ui.heading(format!("Message {}", &message.id));
+                                            ui.with_layout(
+                                                egui::Layout::right_to_left(egui::Align::Center),
+                                                |ui| {
+                                                    if ui.button("✖").clicked() {
+                                                        self.selected_message.take();
+                                                    }
+                                                },
+                                            );
+                                        },
+                                    );
+                                });
+
+                            egui::CentralPanel::default().show_inside(ui, |ui| {
+                                egui::ScrollArea::vertical().show(ui, |ui| {
+                                    let publish_time =
+                                        if let Some(publish_time) = message.publish_time {
+                                            let local_publish_time: DateTime<Local> =
+                                                publish_time.into();
+                                            local_publish_time.format("%d/%m/%Y %H:%M").to_string()
+                                        } else {
+                                            "<Empty>".to_string()
+                                        };
+
+                                    ui.horizontal(|ui| {
+                                        ui.label("Publish Time: ");
+                                        ui.monospace(publish_time);
+                                    });
+
+                                    egui::CollapsingHeader::new("Data")
+                                        .id_source("selected_message_data_collapsing_header")
+                                        .default_open(false)
+                                        .show(ui, |ui| {
+                                            JsonTree::new(
+                                                format!(
+                                                    "selected_message_data_json_{}",
+                                                    &message.id
+                                                ),
+                                                &message.data_json,
+                                            )
+                                            .default_expand(DefaultExpand::All)
+                                            .show(ui);
+                                        });
+
+                                    egui::CollapsingHeader::new("Attributes")
+                                        .id_source("selected_message_attributes_collapsing_header")
+                                        .default_open(false)
+                                        .show(ui, |ui| {
+                                            if message.attributes.is_empty() {
+                                                ui.monospace("<Empty>");
+                                            } else {
+                                                JsonTree::new(
+                                                    format!(
+                                                        "selected_message_attributes_json_{}",
+                                                        &message.id
+                                                    ),
+                                                    &Value::Object(Map::from_iter(
+                                                        message.attributes.iter().map(|(k, v)| {
+                                                            (k.to_owned(), Value::String(v.clone()))
+                                                        }),
+                                                    )),
+                                                )
+                                                .default_expand(egui_json_tree::DefaultExpand::All)
+                                                .show(ui);
+                                            }
+                                        });
+                                    ui.allocate_space(ui.available_size());
+                                });
+                            });
+                        }
+                    });
+
                 egui::TopBottomPanel::top("topic_view_top_panel")
                     .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
                     .show(ctx, |ui| {
@@ -229,6 +330,9 @@ impl App {
                                         .entry(selected_topic.clone())
                                         .or_default(),
                                     self.memory.messages.get(selected_topic).unwrap_or(&vec![]),
+                                    |idx| {
+                                        self.selected_message = Some((selected_topic.clone(), idx))
+                                    },
                                 );
                             }
                             None => {
