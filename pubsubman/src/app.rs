@@ -16,7 +16,7 @@ use crate::{
     exit_state::{ExitState, SubscriptionCleanupState},
     notifications::Notifications,
     settings::Settings,
-    ui::{render_topic_name, MessagesView, PublishView},
+    ui::{render_topic_name, show_json_context_menu, MessagesView, PublishView},
 };
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
@@ -251,6 +251,9 @@ impl App {
                                                 &message.data_json,
                                             )
                                             .default_expand(DefaultExpand::All)
+                                            .response_callback(show_json_context_menu(
+                                                &message.data_json,
+                                            ))
                                             .show(ui);
                                         });
 
@@ -273,6 +276,13 @@ impl App {
                                                     )),
                                                 )
                                                 .default_expand(egui_json_tree::DefaultExpand::All)
+                                                .response_callback(show_json_context_menu(
+                                                    &Value::Object(Map::from_iter(
+                                                        message.attributes.iter().map(|(k, v)| {
+                                                            (k.to_owned(), Value::String(v.clone()))
+                                                        }),
+                                                    )),
+                                                ))
                                                 .show(ui);
                                             }
                                         });
