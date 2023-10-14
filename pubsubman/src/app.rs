@@ -7,7 +7,6 @@ use pubsubman_backend::{
     model::{PubsubMessage, SubscriptionName, TopicName},
     Backend,
 };
-use serde_json::{Map, Value};
 use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{
@@ -269,19 +268,11 @@ impl App {
                                                         "selected_message_attributes_json_{}",
                                                         &message.id
                                                     ),
-                                                    &Value::Object(Map::from_iter(
-                                                        message.attributes.iter().map(|(k, v)| {
-                                                            (k.to_owned(), Value::String(v.clone()))
-                                                        }),
-                                                    )),
+                                                    &message.attributes_json,
                                                 )
                                                 .default_expand(egui_json_tree::DefaultExpand::All)
                                                 .response_callback(show_json_context_menu(
-                                                    &Value::Object(Map::from_iter(
-                                                        message.attributes.iter().map(|(k, v)| {
-                                                            (k.to_owned(), Value::String(v.clone()))
-                                                        }),
-                                                    )),
+                                                    &message.attributes_json,
                                                 ))
                                                 .show(ui);
                                             }
