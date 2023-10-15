@@ -4,13 +4,13 @@ use chrono::{DateTime, Local};
 use egui_json_tree::{DefaultExpand, JsonTree};
 use pubsubman_backend::{
     message::{BackendMessage, FrontendMessage},
-    model::{PubsubMessage, SubscriptionName, TopicName},
+    model::{PubsubMessage, PubsubMessageToPublish, SubscriptionName, TopicName},
     Backend,
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::{
-    actions::{create_subscription, delete_subscriptions, refresh_topics},
+    actions::{create_subscription, delete_subscriptions, publish_message, refresh_topics},
     column_settings::ColumnSettings,
     exit_state::{ExitState, SubscriptionCleanupState},
     notifications::Notifications,
@@ -220,6 +220,22 @@ impl App {
                                             );
                                         },
                                     );
+                                });
+
+                            egui::TopBottomPanel::bottom("selected_message_bottom_panel")
+                                .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
+                                .show_inside(ui, |ui| {
+                                    if ui.button("Republish Message").clicked() {
+                                        let message_to_publish = PubsubMessageToPublish::new(
+                                            message.data.clone(),
+                                            message.attributes.clone(),
+                                        );
+                                        publish_message(
+                                            &self.front_tx,
+                                            selected_topic,
+                                            message_to_publish,
+                                        )
+                                    }
                                 });
 
                             egui::CentralPanel::default().show_inside(ui, |ui| {
