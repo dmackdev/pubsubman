@@ -198,6 +198,14 @@ impl App {
                                 .and_then(|messages| messages.get(*idx))
                         });
 
+                egui::TopBottomPanel::top("topic_view_top_panel")
+                    .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
+                    .show(ctx, |ui| {
+                        ui.vertical_centered(|ui| {
+                            ui.heading(&selected_topic.0);
+                        });
+                    });
+
                 egui::SidePanel::right("selected_message")
                     .frame(egui::Frame::none())
                     .resizable(true)
@@ -297,14 +305,6 @@ impl App {
                                 });
                             });
                         }
-                    });
-
-                egui::TopBottomPanel::top("topic_view_top_panel")
-                    .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
-                    .show(ctx, |ui| {
-                        ui.vertical_centered(|ui| {
-                            ui.heading(&selected_topic.0);
-                        });
                     });
 
                 egui::TopBottomPanel::bottom("topic_view_bottom_panel")
