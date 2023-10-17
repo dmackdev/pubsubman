@@ -188,8 +188,7 @@ impl App {
         match &self.selected_topic {
             Some(selected_topic) => {
                 let selected_message =
-                    &self
-                        .selected_message
+                    self.selected_message
                         .as_ref()
                         .and_then(|(topic_name, idx)| {
                             self.memory
