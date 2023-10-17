@@ -1,6 +1,6 @@
 use chrono::{DateTime, TimeZone, Utc};
 use google_cloud_pubsub::subscriber::ReceivedMessage;
-use serde_json::Value;
+use serde_json::{Map, Value};
 use std::{collections::HashMap, str};
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -10,6 +10,7 @@ pub struct PubsubMessage {
     pub data: String,
     pub data_json: Value,
     pub attributes: HashMap<String, String>,
+    pub attributes_json: Value,
 }
 
 impl From<ReceivedMessage> for PubsubMessage {
@@ -30,12 +31,21 @@ impl From<ReceivedMessage> for PubsubMessage {
             Err(_) => Value::String(data.clone()),
         };
 
+        let attributes_json = Value::Object(Map::from_iter(
+            value
+                .message
+                .attributes
+                .iter()
+                .map(|(k, v)| (k.to_owned(), Value::String(v.to_owned()))),
+        ));
+
         Self {
             id: value.message.message_id,
             publish_time,
             data,
             data_json,
             attributes: value.message.attributes,
+            attributes_json,
         }
     }
 }

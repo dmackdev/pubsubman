@@ -13,7 +13,7 @@ use crate::{
     exit_state::{ExitState, SubscriptionCleanupState},
     notifications::Notifications,
     settings::Settings,
-    ui::{render_topic_name, MessagesView, PublishView},
+    ui::{render_selected_message, render_topic_name, MessagesView, PublishView},
 };
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
@@ -35,6 +35,7 @@ pub struct App {
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
     notifications: Notifications,
+    selected_message: Option<(TopicName, usize)>,
 }
 
 impl App {
@@ -66,6 +67,7 @@ impl App {
             front_tx,
             back_rx,
             notifications: Notifications::default(),
+            selected_message: None,
         }
     }
 
@@ -165,6 +167,8 @@ impl App {
             cancel_token.cancel();
         }
 
+        self.selected_message.take();
+
         self.selected_topic = Some(topic_name.clone());
 
         if !self.memory.subscriptions.contains_key(topic_name) {
@@ -181,12 +185,40 @@ impl App {
     fn render_central_panel(&mut self, ctx: &egui::Context) {
         match &self.selected_topic {
             Some(selected_topic) => {
+                let selected_message =
+                    self.selected_message
+                        .as_ref()
+                        .and_then(|(topic_name, idx)| {
+                            self.memory
+                                .messages
+                                .get(topic_name)
+                                .and_then(|messages| messages.get(*idx))
+                        });
+
                 egui::TopBottomPanel::top("topic_view_top_panel")
                     .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
                     .show(ctx, |ui| {
                         ui.vertical_centered(|ui| {
                             ui.heading(&selected_topic.0);
                         });
+                    });
+
+                egui::SidePanel::right("selected_message")
+                    .frame(egui::Frame::none())
+                    .resizable(true)
+                    .show_animated(ctx, selected_message.is_some(), |ui| {
+                        if let Some(message) = selected_message {
+                            render_selected_message(
+                                ctx,
+                                ui,
+                                &self.front_tx,
+                                message,
+                                selected_topic,
+                                || {
+                                    self.selected_message.take();
+                                },
+                            );
+                        }
                     });
 
                 egui::TopBottomPanel::bottom("topic_view_bottom_panel")
@@ -229,6 +261,9 @@ impl App {
                                         .entry(selected_topic.clone())
                                         .or_default(),
                                     self.memory.messages.get(selected_topic).unwrap_or(&vec![]),
+                                    |idx| {
+                                        self.selected_message = Some((selected_topic.clone(), idx))
+                                    },
                                 );
                             }
                             None => {
