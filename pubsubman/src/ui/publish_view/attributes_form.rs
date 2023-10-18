@@ -3,17 +3,17 @@ use std::collections::HashMap;
 use crate::ui::validity_frame::ValidityFrame;
 
 #[derive(Default, Hash)]
-pub struct Attributes(Vec<(String, String)>);
+pub struct AttributesForm(Vec<(String, String)>);
 
-impl Attributes {
-    fn validator(&self) -> AttributesValidator {
+impl AttributesForm {
+    fn validator(&self) -> AttributesFormValidator {
         let mut key_count_map = HashMap::new();
 
         for (key, _) in self.0.iter() {
             *key_count_map.entry(key.clone()).or_insert_with(|| 0) += 1;
         }
 
-        AttributesValidator(key_count_map)
+        AttributesFormValidator(key_count_map)
     }
 
     pub fn is_empty(&self) -> bool {
@@ -59,16 +59,16 @@ impl Attributes {
     }
 }
 
-impl From<&Attributes> for HashMap<String, String> {
-    fn from(value: &Attributes) -> Self {
+impl From<&AttributesForm> for HashMap<String, String> {
+    fn from(value: &AttributesForm) -> Self {
         HashMap::from_iter(value.0.clone())
     }
 }
 
 #[derive(Default, Clone)]
-pub struct AttributesValidator(HashMap<String, usize>);
+pub struct AttributesFormValidator(HashMap<String, usize>);
 
-impl AttributesValidator {
+impl AttributesFormValidator {
     pub fn is_valid(&self) -> bool {
         self.0.iter().all(|(_, count)| *count < 2)
     }
@@ -78,19 +78,24 @@ impl AttributesValidator {
     }
 }
 
-pub fn attributes_validator(ctx: &egui::Context, attributes: &Attributes) -> AttributesValidator {
-    impl egui::util::cache::ComputerMut<&Attributes, AttributesValidator> for AttributesValidator {
-        fn compute(&mut self, attributes: &Attributes) -> AttributesValidator {
+pub fn attributes_validator(
+    ctx: &egui::Context,
+    attributes: &AttributesForm,
+) -> AttributesFormValidator {
+    impl egui::util::cache::ComputerMut<&AttributesForm, AttributesFormValidator>
+        for AttributesFormValidator
+    {
+        fn compute(&mut self, attributes: &AttributesForm) -> AttributesFormValidator {
             attributes.validator()
         }
     }
 
-    type AttributesKeyCounterCache =
-        egui::util::cache::FrameCache<AttributesValidator, AttributesValidator>;
+    type AttributesFormValidatorCache =
+        egui::util::cache::FrameCache<AttributesFormValidator, AttributesFormValidator>;
 
     ctx.memory_mut(|mem| {
         mem.caches
-            .cache::<AttributesKeyCounterCache>()
+            .cache::<AttributesFormValidatorCache>()
             .get(attributes)
     })
 }

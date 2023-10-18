@@ -6,14 +6,14 @@ use tokio::sync::mpsc::Sender;
 
 use crate::actions::publish_message;
 
-use self::attributes::{attributes_validator, Attributes};
+use self::attributes_form::{attributes_validator, AttributesForm};
 
-mod attributes;
+mod attributes_form;
 
 #[derive(Default)]
 pub struct PublishView {
     data: String,
-    attributes: Attributes,
+    attributes: AttributesForm,
 }
 
 impl PublishView {
