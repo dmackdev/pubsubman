@@ -221,19 +221,23 @@ impl App {
                         }
                     });
 
+                let bottom_panel_height = ctx.available_rect().height() / 2.0;
+
                 egui::TopBottomPanel::bottom("topic_view_bottom_panel")
-                    .resizable(true)
                     .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
                     .show_animated(
                         ctx,
                         self.memory.settings.view.show_publish_message_panel,
                         |ui| {
-                            self.publish_views
-                                .entry(selected_topic.clone())
-                                .or_default()
-                                .show(ui, &self.front_tx, selected_topic);
-
-                            ui.allocate_space(ui.available_size());
+                            egui::ScrollArea::vertical()
+                                .auto_shrink([false, true])
+                                .min_scrolled_height(bottom_panel_height)
+                                .show(ui, |ui| {
+                                    self.publish_views
+                                        .entry(selected_topic.clone())
+                                        .or_default()
+                                        .show(ui, &self.front_tx, selected_topic);
+                                });
                         },
                     );
 
