@@ -215,7 +215,7 @@ fn render_messages_table<'a, I>(
                     if let Some(publish_time) = message.publish_time {
                         let local_publish_time: DateTime<Local> = publish_time.into();
 
-                        ui.label(format!("{}", local_publish_time.format("%d/%m/%Y %H:%M")));
+                        ui.monospace(format!("{}", local_publish_time.format("%d/%m/%Y %H:%M")));
                     }
                 }
 
