@@ -19,6 +19,7 @@ pub struct MessagesView {
     pub stream_messages_enabled: bool,
     pub stream_messages_cancel_token: Option<CancellationToken>,
     pub search_query: String,
+    search_mode: SearchMode,
 }
 
 impl MessagesView {
@@ -116,6 +117,22 @@ impl MessagesView {
                             if search_query_edit_response.changed() {
                                 search_query_changed = true;
                             }
+
+                            egui::ComboBox::from_id_source("search_mode_combo_box")
+                                .selected_text(format!("{:?}", self.search_mode))
+                                .width(50.0)
+                                .show_ui(ui, |ui| {
+                                    ui.selectable_value(
+                                        &mut self.search_mode,
+                                        SearchMode::Data,
+                                        "Data",
+                                    );
+                                    ui.selectable_value(
+                                        &mut self.search_mode,
+                                        SearchMode::Id,
+                                        "Id",
+                                    );
+                                });
 
                             ui.visuals_mut().widgets.inactive.weak_bg_fill =
                                 egui::Color32::from_gray(32);
@@ -231,4 +248,11 @@ fn render_messages_table<'a, I>(
                 ui.end_row();
             }
         });
+}
+
+#[derive(Default, Debug, PartialEq, Eq)]
+enum SearchMode {
+    #[default]
+    Data,
+    Id,
 }
