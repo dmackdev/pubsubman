@@ -35,9 +35,14 @@ impl MessagesView {
         on_message_id_click: impl FnMut(usize),
     ) {
         let search_query = self.search_query.to_ascii_lowercase();
-        let filtered_messages = messages
-            .iter()
-            .filter(|msg| msg.data.to_ascii_lowercase().contains(&search_query));
+        let search_mode = self.search_mode;
+        let filtered_messages = messages.iter().filter(|msg| {
+            let source = match search_mode {
+                SearchMode::Data => &msg.data,
+                SearchMode::Id => &msg.id,
+            };
+            source.to_ascii_lowercase().contains(&search_query)
+        });
 
         egui::TopBottomPanel::top("messages_top_panel")
             .frame(egui::Frame::side_top_panel(ui.style()).inner_margin(8.0))
@@ -103,7 +108,7 @@ impl MessagesView {
                         ui.label("Pull or Stream new messages to retrieve the latest.");
                     });
                 } else {
-                    let mut search_query_changed = false;
+                    let mut should_reset_expanded = false;
 
                     ui.horizontal(|ui| {
                         ui.visuals_mut().extreme_bg_color = egui::Color32::from_gray(32);
@@ -115,31 +120,41 @@ impl MessagesView {
                             );
 
                             if search_query_edit_response.changed() {
-                                search_query_changed = true;
+                                should_reset_expanded = true;
                             }
 
-                            egui::ComboBox::from_id_source("search_mode_combo_box")
-                                .selected_text(format!("{:?}", self.search_mode))
-                                .width(50.0)
-                                .show_ui(ui, |ui| {
-                                    ui.selectable_value(
-                                        &mut self.search_mode,
-                                        SearchMode::Data,
-                                        "Data",
-                                    );
-                                    ui.selectable_value(
-                                        &mut self.search_mode,
-                                        SearchMode::Id,
-                                        "Id",
-                                    );
-                                });
+                            let search_mode_changed =
+                                egui::ComboBox::from_id_source("search_mode_combo_box")
+                                    .selected_text(format!("{:?}", self.search_mode))
+                                    .width(50.0)
+                                    .show_ui(ui, |ui| {
+                                        ui.selectable_value(
+                                            &mut self.search_mode,
+                                            SearchMode::Data,
+                                            "Data",
+                                        )
+                                        .changed()
+                                            || ui
+                                                .selectable_value(
+                                                    &mut self.search_mode,
+                                                    SearchMode::Id,
+                                                    "Id",
+                                                )
+                                                .changed()
+                                    })
+                                    .inner
+                                    .unwrap_or_default();
+
+                            if search_mode_changed {
+                                should_reset_expanded = true;
+                            }
 
                             ui.visuals_mut().widgets.inactive.weak_bg_fill =
                                 egui::Color32::from_gray(32);
 
                             if ui.button("✖").clicked() && !self.search_query.is_empty() {
                                 self.search_query.clear();
-                                search_query_changed = true;
+                                should_reset_expanded = true;
                             }
 
                             ui.with_layout(
@@ -171,7 +186,8 @@ impl MessagesView {
                                         column_settings,
                                         filtered_messages,
                                         &search_query,
-                                        search_query_changed,
+                                        should_reset_expanded,
+                                        self.search_mode,
                                         on_message_id_click,
                                     );
                                 });
@@ -181,13 +197,15 @@ impl MessagesView {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_messages_table<'a, I>(
     ui: &mut egui::Ui,
     selected_topic: &TopicName,
     column_settings: &ColumnSettings,
     messages: I,
     search_term: &str,
-    search_query_changed: bool,
+    should_reset_expanded: bool,
+    search_mode: SearchMode,
     mut on_message_id_click: impl FnMut(usize),
 ) where
     I: Iterator<Item = &'a PubsubMessage>,
@@ -236,12 +254,17 @@ fn render_messages_table<'a, I>(
                     }
                 }
 
+                let default_expand = match search_mode {
+                    SearchMode::Data => DefaultExpand::SearchResults(search_term),
+                    SearchMode::Id => DefaultExpand::None,
+                };
+
                 let response = JsonTree::new(&message.id, &message.data_json)
-                    .default_expand(DefaultExpand::SearchResults(search_term))
+                    .default_expand(default_expand)
                     .response_callback(show_json_context_menu(&message.data_json))
                     .show(ui);
 
-                if search_query_changed {
+                if should_reset_expanded {
                     response.reset_expanded(ui);
                 }
 
@@ -250,7 +273,7 @@ fn render_messages_table<'a, I>(
         });
 }
 
-#[derive(Default, Debug, PartialEq, Eq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 enum SearchMode {
     #[default]
     Data,
