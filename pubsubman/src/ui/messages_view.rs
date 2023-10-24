@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use chrono::{DateTime, Local};
 use egui_json_tree::{DefaultExpand, JsonTree};
 use pubsubman_backend::{
@@ -125,7 +127,7 @@ impl MessagesView {
 
                             let search_mode_changed =
                                 egui::ComboBox::from_id_source("search_mode_combo_box")
-                                    .selected_text(format!("{:?}", self.search_mode))
+                                    .selected_text(format!("{}", self.search_mode))
                                     .width(50.0)
                                     .show_ui(ui, |ui| {
                                         ui.selectable_value(
@@ -138,7 +140,7 @@ impl MessagesView {
                                                 .selectable_value(
                                                     &mut self.search_mode,
                                                     SearchMode::Id,
-                                                    "Id",
+                                                    "ID",
                                                 )
                                                 .changed()
                                     })
@@ -278,4 +280,13 @@ enum SearchMode {
     #[default]
     Data,
     Id,
+}
+
+impl Display for SearchMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SearchMode::Data => write!(f, "Data"),
+            SearchMode::Id => write!(f, "ID"),
+        }
+    }
 }
