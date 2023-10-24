@@ -1,6 +1,10 @@
-on: [push, pull_request]
-
 name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 env:
   # This is required to enable the web_sys clipboard API which egui_web uses
