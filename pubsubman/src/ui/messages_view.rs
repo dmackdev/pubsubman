@@ -20,7 +20,7 @@ use super::show_json_context_menu;
 pub struct MessagesView {
     pub stream_messages_enabled: bool,
     pub stream_messages_cancel_token: Option<CancellationToken>,
-    pub search_query: String,
+    search_query: String,
     search_mode: SearchMode,
 }
 
