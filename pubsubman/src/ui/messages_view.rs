@@ -212,7 +212,9 @@ fn render_messages_table<'a, I>(
 ) where
     I: Iterator<Item = &'a PubsubMessage>,
 {
-    let ColumnSettings { show_published_at } = *column_settings;
+    let ColumnSettings {
+        show_publish_time: show_published_at,
+    } = *column_settings;
 
     let mut num_columns = 2; // ID and Data columns will always be shown.
 
@@ -228,7 +230,7 @@ fn render_messages_table<'a, I>(
             ui.label("ID");
 
             if show_published_at {
-                ui.label("Published at");
+                ui.label("Publish Time");
             }
 
             // Let Data column take up all remaining space.
