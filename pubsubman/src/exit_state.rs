@@ -100,8 +100,6 @@ impl ExitState {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui.button("Cancel").clicked() {
                         self.show_exit_dialogue = false;
-                        ui.ctx()
-                            .send_viewport_cmd(egui::ViewportCommand::CancelClose);
                     }
                 });
             });

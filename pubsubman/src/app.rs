@@ -296,19 +296,18 @@ impl App {
         };
     }
 
-    fn render_close_dialog(&mut self, ctx: &egui::Context) {
+    fn handle_exit(&mut self, ctx: &egui::Context) {
+        if ctx.input(|i| i.viewport().close_requested()) && !self.exit_state.can_exit {
+            self.exit_state.show_exit_dialogue = true;
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+        }
+
         let sub_names = self.memory.subscriptions.values().cloned().collect();
         let cleanup_subscriptions = |sub_names: Vec<SubscriptionName>| {
             delete_subscriptions(&self.front_tx, sub_names);
         };
-        self.exit_state.show(ctx, sub_names, cleanup_subscriptions)
-    }
 
-    fn handle_exit(&mut self, ctx: &egui::Context) {
-        if ctx.input(|i| i.viewport().close_requested()) && !self.exit_state.show_exit_dialogue {
-            self.exit_state.show_exit_dialogue = true;
-            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
-        }
+        self.exit_state.show(ctx, sub_names, cleanup_subscriptions);
 
         if self.exit_state.can_exit {
             for view in self.messages_views.values_mut() {
@@ -319,8 +318,6 @@ impl App {
             // Clear superficial widget state, e.g. reset all collapsing headers.
             ctx.data_mut(|d| d.clear());
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-        } else {
-            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
         }
     }
 }
@@ -329,7 +326,6 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint();
         self.handle_backend_message();
-        self.render_close_dialog(ctx);
         self.render_top_panel(ctx);
         self.render_topics_panel(ctx);
         self.render_central_panel(ctx);
