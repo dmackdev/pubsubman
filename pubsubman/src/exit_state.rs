@@ -4,7 +4,7 @@ use crate::ui::Modal;
 
 #[derive(Default)]
 pub struct ExitState {
-    show_exit_dialogue: bool,
+    pub show_exit_dialogue: bool,
     pub can_exit: bool,
     pub subscription_cleanup_state: SubscriptionCleanupState,
 }
@@ -100,14 +100,11 @@ impl ExitState {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui.button("Cancel").clicked() {
                         self.show_exit_dialogue = false;
+                        ui.ctx()
+                            .send_viewport_cmd(egui::ViewportCommand::CancelClose);
                     }
                 });
             });
         });
-    }
-
-    pub fn on_close_event(&mut self) -> bool {
-        self.show_exit_dialogue = true;
-        self.can_exit
     }
 }

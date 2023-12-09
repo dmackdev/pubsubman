@@ -108,13 +108,13 @@ impl App {
         }
     }
 
-    fn render_top_panel(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn render_top_panel(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
                         ui.close_menu();
-                        frame.close();
+                        self.exit_state.show_exit_dialogue = true;
                     }
                 });
 
@@ -304,7 +304,12 @@ impl App {
         self.exit_state.show(ctx, sub_names, cleanup_subscriptions)
     }
 
-    fn handle_exit(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn handle_exit(&mut self, ctx: &egui::Context) {
+        if ctx.input(|i| i.viewport().close_requested()) && !self.exit_state.show_exit_dialogue {
+            self.exit_state.show_exit_dialogue = true;
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+        }
+
         if self.exit_state.can_exit {
             for view in self.messages_views.values_mut() {
                 if let Some(cancel_token) = view.stream_messages_cancel_token.take() {
@@ -313,28 +318,26 @@ impl App {
             }
             // Clear superficial widget state, e.g. reset all collapsing headers.
             ctx.data_mut(|d| d.clear());
-            frame.close();
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        } else {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
         }
     }
 }
 
 impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint();
         self.handle_backend_message();
         self.render_close_dialog(ctx);
-        self.render_top_panel(ctx, frame);
+        self.render_top_panel(ctx);
         self.render_topics_panel(ctx);
         self.render_central_panel(ctx);
-        self.handle_exit(ctx, frame);
+        self.handle_exit(ctx);
         self.notifications.show(ctx);
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value::<Memory>(storage, eframe::APP_KEY, &self.memory);
-    }
-
-    fn on_close_event(&mut self) -> bool {
-        self.exit_state.on_close_event()
     }
 }
