@@ -57,6 +57,9 @@ impl App {
             .and_then(|storage| eframe::get_value::<Memory>(storage, eframe::APP_KEY))
             .unwrap_or_default();
 
+        cc.egui_ctx
+            .style_mut(|style| style.interaction.selectable_labels = false);
+
         Self {
             topic_names: vec![],
             selected_topic: None,
