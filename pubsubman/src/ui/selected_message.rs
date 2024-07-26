@@ -64,7 +64,7 @@ pub fn render_selected_message(
                         &message.data_json,
                     )
                     .default_expand(DefaultExpand::All)
-                    .response_callback(show_json_context_menu(&message.data_json))
+                    .on_render(show_json_context_menu)
                     .show(ui);
                 });
 
@@ -80,7 +80,7 @@ pub fn render_selected_message(
                             &message.attributes_json,
                         )
                         .default_expand(egui_json_tree::DefaultExpand::All)
-                        .response_callback(show_json_context_menu(&message.attributes_json))
+                        .on_render(show_json_context_menu)
                         .show(ui);
                     }
                 });

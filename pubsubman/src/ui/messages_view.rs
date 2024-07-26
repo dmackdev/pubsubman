@@ -265,7 +265,7 @@ fn render_messages_table<'a, I>(
 
                 let response = JsonTree::new(&message.id, &message.data_json)
                     .default_expand(default_expand)
-                    .response_callback(show_json_context_menu(&message.data_json))
+                    .on_render(show_json_context_menu)
                     .show(ui);
 
                 if should_reset_expanded {
