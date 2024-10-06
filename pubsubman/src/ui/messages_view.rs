@@ -126,7 +126,7 @@ impl MessagesView {
                             }
 
                             let search_mode_changed =
-                                egui::ComboBox::from_id_source("search_mode_combo_box")
+                                egui::ComboBox::from_id_salt("search_mode_combo_box")
                                     .selected_text(format!("{}", self.search_mode))
                                     .width(50.0)
                                     .show_ui(ui, |ui| {

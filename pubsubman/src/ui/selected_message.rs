@@ -56,7 +56,7 @@ pub fn render_selected_message(
             });
 
             egui::CollapsingHeader::new("Data")
-                .id_source("selected_message_data_collapsing_header")
+                .id_salt("selected_message_data_collapsing_header")
                 .default_open(false)
                 .show(ui, |ui| {
                     JsonTree::new(
@@ -69,7 +69,7 @@ pub fn render_selected_message(
                 });
 
             egui::CollapsingHeader::new("Attributes")
-                .id_source("selected_message_attributes_collapsing_header")
+                .id_salt("selected_message_attributes_collapsing_header")
                 .default_open(false)
                 .show(ui, |ui| {
                     if message.attributes.is_empty() {

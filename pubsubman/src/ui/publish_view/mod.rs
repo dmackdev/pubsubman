@@ -26,7 +26,7 @@ impl PublishView {
         ui.heading("Publish New Message");
 
         egui::CollapsingHeader::new("Data")
-            .id_source(format!("{}-data", selected_topic.0))
+            .id_salt(format!("{}-data", selected_topic.0))
             .default_open(true)
             .show(ui, |ui| {
                 ui.add(
@@ -46,7 +46,7 @@ impl PublishView {
         };
 
         egui::CollapsingHeader::new(header_text)
-            .id_source(format!("{}-attributes", selected_topic.0))
+            .id_salt(format!("{}-attributes", selected_topic.0))
             .default_open(false)
             .show(ui, |ui| {
                 if !self.attributes.is_empty() {

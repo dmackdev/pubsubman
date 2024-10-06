@@ -18,7 +18,7 @@ impl Notifications {
     }
 
     pub fn success(&mut self, message: String) {
-        self.toasts.success(message).set_show_progress_bar(false);
+        self.toasts.success(message).show_progress_bar(false);
     }
 
     pub fn error(&mut self, error: BackendError) {

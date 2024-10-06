@@ -59,6 +59,7 @@ impl App {
 
         cc.egui_ctx
             .style_mut(|style| style.interaction.selectable_labels = false);
+        cc.egui_ctx.set_theme(egui::Theme::Dark);
 
         Self {
             topic_names: vec![],
