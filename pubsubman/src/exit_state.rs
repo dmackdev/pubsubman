@@ -1,6 +1,5 @@
+use egui::Modal;
 use pubsubman_backend::model::SubscriptionName;
-
-use crate::ui::Modal;
 
 #[derive(Default)]
 pub struct ExitState {
@@ -46,23 +45,24 @@ impl ExitState {
             "Confirm Quit"
         };
 
-        Modal::new("exit_modal", title).show(ctx, |ui| {
+        Modal::new("exit_modal".into()).show(ctx, |ui| {
             egui::Frame::none().inner_margin(MARGIN).show(ui, |ui| {
-                ui.allocate_ui_with_layout(
-                    egui::vec2(450.0, 150.0),
-                    egui::Layout::top_down(egui::Align::Center),
-                    |ui| match self.subscription_cleanup_state {
+                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                    ui.heading(title);
+                    ui.add_space(20.0);
+                    match self.subscription_cleanup_state {
                         SubscriptionCleanupState::Idle => {
                             self.render_dialog_contents(ui, sub_names, cleanup_subscriptions);
                         }
                         SubscriptionCleanupState::Waiting => {
                             ui.spinner();
+                            ui.add_space(10.0);
                         }
                         SubscriptionCleanupState::Complete => {
                             self.can_exit = true;
                         }
-                    },
-                )
+                    };
+                });
             });
         });
     }
