@@ -1163,9 +1163,9 @@ dependencies = [
 
 [[package]]
 name = "egui_json_tree"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9138b6a3732255405bc5b4947467b17b30245c0c7c77977bc22864f69500b6c"
+checksum = "81284e465c428d209a2641a3e2cb6f09d5495b1eb087f6e21fbb1b33c1cd716f"
 dependencies = [
  "egui",
  "serde_json",
