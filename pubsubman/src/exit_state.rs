@@ -17,10 +17,10 @@ pub enum SubscriptionCleanupState {
 }
 
 const MARGIN: egui::Margin = egui::Margin {
-    left: 16.0,
-    right: 16.0,
-    top: 12.0,
-    bottom: 4.0,
+    left: 16,
+    right: 16,
+    top: 12,
+    bottom: 4,
 };
 
 impl ExitState {
@@ -46,7 +46,7 @@ impl ExitState {
         };
 
         Modal::new("exit_modal".into()).show(ctx, |ui| {
-            egui::Frame::none().inner_margin(MARGIN).show(ui, |ui| {
+            egui::Frame::NONE.inner_margin(MARGIN).show(ui, |ui| {
                 ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                     ui.heading(title);
                     ui.add_space(20.0);

@@ -72,7 +72,7 @@ impl MessagesView {
                     let stream_mode_toggle = ui.add(
                         egui::Button::new("Stream")
                             .selected(self.stream_messages_enabled)
-                            .rounding(ui.visuals().widgets.active.rounding),
+                            .corner_radius(ui.visuals().widgets.active.corner_radius),
                     );
 
                     if stream_mode_toggle.clicked() {
@@ -167,16 +167,16 @@ impl MessagesView {
                     });
 
                     let outer_margin = egui::Margin {
-                        top: 8.0,
-                        bottom: 12.0,
+                        top: 8,
+                        bottom: 12,
                         ..Default::default()
                     };
 
-                    egui::Frame::none()
+                    egui::Frame::NONE
                         .fill(ui.style().visuals.panel_fill)
                         .inner_margin(egui::vec2(6.0, 3.0))
                         .outer_margin(outer_margin)
-                        .rounding(ui.style().visuals.window_rounding)
+                        .corner_radius(ui.style().visuals.window_corner_radius)
                         .show(ui, |ui| {
                             egui::ScrollArea::vertical()
                                 .stick_to_bottom(true)

@@ -208,7 +208,7 @@ impl App {
                     });
 
                 egui::SidePanel::right("selected_message")
-                    .frame(egui::Frame::none())
+                    .frame(egui::Frame::NONE)
                     .resizable(true)
                     .show_animated(ctx, selected_message.is_some(), |ui| {
                         if let Some(message) = selected_message {

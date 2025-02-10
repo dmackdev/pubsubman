@@ -13,12 +13,12 @@ pub fn render_topic_name(
         (egui::Stroke::NONE, ui.visuals().code_bg_color)
     };
 
-    egui::Frame::none()
+    egui::Frame::NONE
         .stroke(stroke)
         .fill(fill)
-        .inner_margin(egui::Margin::same(7.5))
-        .outer_margin(egui::Margin::same(2.5))
-        .rounding(ui.visuals().window_rounding)
+        .inner_margin(egui::Margin::same(7))
+        .outer_margin(egui::Margin::same(2))
+        .corner_radius(ui.visuals().window_corner_radius)
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
 
