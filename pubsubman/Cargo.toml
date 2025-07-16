@@ -2,12 +2,12 @@
 name = "pubsubman"
 version = "0.1.0"
 authors = ["Duncan MacKinnon <dmackdev@gmail.com>"]
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 chrono = { workspace = true }
 clap = { version = "4.4.0", features = ["derive"] }
-eframe = { version = "0.31", default-features = false, features = [
+eframe = { version = "0.32", default-features = false, features = [
   "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
   "default_fonts", # Embed the default egui fonts.
   "glow",          # Use the glow rendering backend. Alternative: "wgpu".
@@ -15,9 +15,9 @@ eframe = { version = "0.31", default-features = false, features = [
   "wayland",       # Required for Linux support (including CI!)
   "x11",
 ] }
-egui = "0.31"
-egui-notify = "0.19.0"
-egui_json_tree = "0.11.0"
+egui = "0.32"
+egui-notify = "0.20.0"
+egui_json_tree = "0.13.0"
 env_logger = "0.10"
 log = "0.4"
 pubsubman_backend = { version = "0.1.0", path = "../pubsubman_backend" }

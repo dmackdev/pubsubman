@@ -1,9 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
 use pubsubman_backend::{
+    Backend,
     message::{BackendMessage, FrontendMessage},
     model::{PubsubMessage, SubscriptionName, TopicName},
-    Backend,
 };
 use tokio::sync::mpsc::{Receiver, Sender};
 
@@ -13,7 +13,7 @@ use crate::{
     exit_state::{ExitState, SubscriptionCleanupState},
     notifications::Notifications,
     settings::Settings,
-    ui::{render_selected_message, render_topic_name, MessagesView, PublishView},
+    ui::{MessagesView, PublishView, render_selected_message, render_topic_name},
 };
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
@@ -114,10 +114,9 @@ impl App {
 
     fn render_top_panel(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            egui::menu::bar(ui, |ui| {
+            egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
-                        ui.close_menu();
                         self.exit_state.show_exit_dialogue = true;
                     }
                 });

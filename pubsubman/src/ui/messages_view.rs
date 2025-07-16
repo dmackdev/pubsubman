@@ -110,53 +110,41 @@ impl MessagesView {
                         ui.label("Pull or Stream new messages to retrieve the latest.");
                     });
                 } else {
-                    let mut should_reset_expanded = false;
-
                     ui.horizontal(|ui| {
                         ui.visuals_mut().extreme_bg_color = egui::Color32::from_gray(32);
                         ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                            let search_query_edit_response = ui.add(
+                            ui.add(
                                 egui::TextEdit::singleline(&mut self.search_query)
                                     .desired_width(125.0)
                                     .hint_text("Search"),
                             );
 
-                            if search_query_edit_response.changed() {
-                                should_reset_expanded = true;
-                            }
-
-                            let search_mode_changed =
-                                egui::ComboBox::from_id_salt("search_mode_combo_box")
-                                    .selected_text(format!("{}", self.search_mode))
-                                    .width(50.0)
-                                    .show_ui(ui, |ui| {
-                                        ui.selectable_value(
-                                            &mut self.search_mode,
-                                            SearchMode::Data,
-                                            "Data",
-                                        )
-                                        .changed()
-                                            || ui
-                                                .selectable_value(
-                                                    &mut self.search_mode,
-                                                    SearchMode::Id,
-                                                    "ID",
-                                                )
-                                                .changed()
-                                    })
-                                    .inner
-                                    .unwrap_or_default();
-
-                            if search_mode_changed {
-                                should_reset_expanded = true;
-                            }
+                            egui::ComboBox::from_id_salt("search_mode_combo_box")
+                                .selected_text(format!("{}", self.search_mode))
+                                .width(50.0)
+                                .show_ui(ui, |ui| {
+                                    ui.selectable_value(
+                                        &mut self.search_mode,
+                                        SearchMode::Data,
+                                        "Data",
+                                    )
+                                    .changed()
+                                        || ui
+                                            .selectable_value(
+                                                &mut self.search_mode,
+                                                SearchMode::Id,
+                                                "ID",
+                                            )
+                                            .changed()
+                                })
+                                .inner
+                                .unwrap_or_default();
 
                             ui.visuals_mut().widgets.inactive.weak_bg_fill =
                                 egui::Color32::from_gray(32);
 
                             if ui.button("✖").clicked() && !self.search_query.is_empty() {
                                 self.search_query.clear();
-                                should_reset_expanded = true;
                             }
 
                             ui.with_layout(
@@ -188,7 +176,6 @@ impl MessagesView {
                                         column_settings,
                                         filtered_messages,
                                         &search_query,
-                                        should_reset_expanded,
                                         self.search_mode,
                                         on_message_id_click,
                                     );
@@ -199,26 +186,22 @@ impl MessagesView {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn render_messages_table<'a, I>(
     ui: &mut egui::Ui,
     selected_topic: &TopicName,
     column_settings: &ColumnSettings,
     messages: I,
     search_term: &str,
-    should_reset_expanded: bool,
     search_mode: SearchMode,
     mut on_message_id_click: impl FnMut(usize),
 ) where
     I: Iterator<Item = &'a PubsubMessage>,
 {
-    let ColumnSettings {
-        show_publish_time: show_published_at,
-    } = *column_settings;
+    let show_publish_time = column_settings.show_publish_time;
 
     let mut num_columns = 2; // ID and Data columns will always be shown.
 
-    if show_published_at {
+    if show_publish_time {
         num_columns += 1;
     }
 
@@ -229,7 +212,7 @@ fn render_messages_table<'a, I>(
         .show(ui, |ui| {
             ui.label("ID");
 
-            if show_published_at {
+            if show_publish_time {
                 ui.label("Publish Time");
             }
 
@@ -250,7 +233,7 @@ fn render_messages_table<'a, I>(
                     on_message_id_click(idx);
                 }
 
-                if show_published_at {
+                if show_publish_time {
                     if let Some(publish_time) = message.publish_time {
                         let local_publish_time: DateTime<Local> = publish_time.into();
 
@@ -263,14 +246,10 @@ fn render_messages_table<'a, I>(
                     SearchMode::Id => DefaultExpand::None,
                 };
 
-                let response = JsonTree::new(&message.id, &message.data_json)
+                JsonTree::new(&message.id, &message.data_json)
                     .default_expand(default_expand)
                     .on_render(show_json_context_menu)
                     .show(ui);
-
-                if should_reset_expanded {
-                    response.reset_expanded(ui);
-                }
 
                 ui.end_row();
             }

@@ -78,18 +78,18 @@ impl AttributesFormValidator {
     }
 }
 
+impl egui::util::cache::ComputerMut<&AttributesForm, AttributesFormValidator>
+    for AttributesFormValidator
+{
+    fn compute(&mut self, attributes: &AttributesForm) -> AttributesFormValidator {
+        attributes.validator()
+    }
+}
+
 pub fn attributes_validator(
     ctx: &egui::Context,
     attributes: &AttributesForm,
 ) -> AttributesFormValidator {
-    impl egui::util::cache::ComputerMut<&AttributesForm, AttributesFormValidator>
-        for AttributesFormValidator
-    {
-        fn compute(&mut self, attributes: &AttributesForm) -> AttributesFormValidator {
-            attributes.validator()
-        }
-    }
-
     type AttributesFormValidatorCache =
         egui::util::cache::FrameCache<AttributesFormValidator, AttributesFormValidator>;
 
