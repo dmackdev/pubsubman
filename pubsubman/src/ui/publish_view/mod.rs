@@ -6,7 +6,7 @@ use tokio::sync::mpsc::Sender;
 
 use crate::actions::publish_message;
 
-use self::attributes_form::{attributes_validator, AttributesForm};
+use self::attributes_form::{AttributesForm, attributes_validator};
 
 mod attributes_form;
 
