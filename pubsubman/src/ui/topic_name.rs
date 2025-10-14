@@ -29,7 +29,11 @@ pub fn render_topic_name(
             }
 
             if ui
-                .add(egui::Label::new(text).sense(egui::Sense::click()))
+                .add(
+                    egui::Label::new(text)
+                        .sense(egui::Sense::click())
+                        .selectable(false),
+                )
                 .clicked()
             {
                 on_click()
