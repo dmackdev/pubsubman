@@ -80,7 +80,7 @@ impl App {
             Ok(message) => match message {
                 BackendMessage::ClientInitialised(project_id) => self
                     .notifications
-                    .success(format!("Successfully authenticated to: {}.", project_id)),
+                    .success(format!("Successfully authenticated to: {project_id}.")),
                 BackendMessage::TopicsUpdated(topic_names) => {
                     self.topic_names = topic_names;
 
