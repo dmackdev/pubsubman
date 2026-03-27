@@ -35,7 +35,7 @@ pub struct App {
     front_tx: Sender<FrontendMessage>,
     back_rx: Receiver<BackendMessage>,
     notifications: Notifications,
-    selected_message: Option<(TopicName, usize)>,
+    selected_message: Option<(TopicName, String)>,
 }
 
 impl App {
@@ -193,11 +193,11 @@ impl App {
                 let selected_message =
                     self.selected_message
                         .as_ref()
-                        .and_then(|(topic_name, idx)| {
+                        .and_then(|(topic_name, msg_id)| {
                             self.memory
                                 .messages
                                 .get(topic_name)
-                                .and_then(|messages| messages.get(*idx))
+                                .and_then(|messages| messages.iter().find(|msg| msg.id == *msg_id)) // TODO: Use ordered hash map to store messages for faster lookup
                         });
 
                 egui::Panel::top("topic_view_top_panel")
@@ -269,8 +269,9 @@ impl App {
                                         .entry(selected_topic.clone())
                                         .or_default(),
                                     self.memory.messages.get(selected_topic).unwrap_or(&vec![]),
-                                    |idx| {
-                                        self.selected_message = Some((selected_topic.clone(), idx))
+                                    |msg_id| {
+                                        self.selected_message =
+                                            Some((selected_topic.clone(), msg_id))
                                     },
                                 );
                             }

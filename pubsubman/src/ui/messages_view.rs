@@ -34,7 +34,7 @@ impl MessagesView {
         sub_name: &SubscriptionName,
         column_settings: &mut ColumnSettings,
         messages: &[PubsubMessage],
-        on_message_id_click: impl FnMut(usize),
+        on_message_id_click: impl FnMut(String),
     ) {
         let search_query = self.search_query.to_ascii_lowercase();
         let search_mode = self.search_mode;
@@ -193,7 +193,7 @@ fn render_messages_table<'a, I>(
     messages: I,
     search_term: &str,
     search_mode: SearchMode,
-    mut on_message_id_click: impl FnMut(usize),
+    mut on_message_id_click: impl FnMut(String),
 ) where
     I: Iterator<Item = &'a PubsubMessage>,
 {
@@ -228,9 +228,9 @@ fn render_messages_table<'a, I>(
 
             ui.end_row();
 
-            for (idx, message) in messages.enumerate() {
+            for message in messages {
                 if ui.link(&message.id).clicked() {
-                    on_message_id_click(idx);
+                    on_message_id_click(message.id.clone());
                 }
 
                 if show_publish_time && let Some(publish_time) = message.publish_time {
