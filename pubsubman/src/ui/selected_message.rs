@@ -11,15 +11,14 @@ use crate::actions::publish_message;
 use super::show_json_context_menu;
 
 pub fn render_selected_message(
-    ctx: &egui::Context,
     ui: &mut egui::Ui,
     front_tx: &Sender<FrontendMessage>,
     message: &PubsubMessage,
     selected_topic: &TopicName,
     mut on_close: impl FnMut(),
 ) {
-    egui::TopBottomPanel::top("selected_message_top_panel")
-        .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
+    egui::Panel::top("selected_message_top_panel")
+        .frame(egui::Frame::side_top_panel(&ui.global_style()).inner_margin(8.0))
         .show_inside(ui, |ui| {
             ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                 ui.heading(format!("Message {}", &message.id));
@@ -31,8 +30,8 @@ pub fn render_selected_message(
             });
         });
 
-    egui::TopBottomPanel::bottom("selected_message_bottom_panel")
-        .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
+    egui::Panel::bottom("selected_message_bottom_panel")
+        .frame(egui::Frame::side_top_panel(&ui.global_style()).inner_margin(8.0))
         .show_inside(ui, |ui| {
             if ui.button("Republish Message").clicked() {
                 let message_to_publish =

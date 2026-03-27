@@ -46,8 +46,8 @@ impl MessagesView {
             source.to_ascii_lowercase().contains(&search_query)
         });
 
-        egui::TopBottomPanel::top("messages_top_panel")
-            .frame(egui::Frame::side_top_panel(ui.style()).inner_margin(8.0))
+        egui::Panel::top("messages_top_panel")
+            .frame(egui::Frame::side_top_panel(&ui.global_style()).inner_margin(8.0))
             .show_inside(ui, |ui| {
                 ui.horizontal(|ui| {
                     ui.heading("Messages");
@@ -233,12 +233,10 @@ fn render_messages_table<'a, I>(
                     on_message_id_click(idx);
                 }
 
-                if show_publish_time {
-                    if let Some(publish_time) = message.publish_time {
-                        let local_publish_time: DateTime<Local> = publish_time.into();
+                if show_publish_time && let Some(publish_time) = message.publish_time {
+                    let local_publish_time: DateTime<Local> = publish_time.into();
 
-                        ui.monospace(format!("{}", local_publish_time.format("%d/%m/%Y %H:%M")));
-                    }
+                    ui.monospace(format!("{}", local_publish_time.format("%d/%m/%Y %H:%M")));
                 }
 
                 let default_expand = match search_mode {

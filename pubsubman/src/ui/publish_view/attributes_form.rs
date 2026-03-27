@@ -97,5 +97,6 @@ pub fn attributes_validator(
         mem.caches
             .cache::<AttributesFormValidatorCache>()
             .get(attributes)
+            .clone()
     })
 }

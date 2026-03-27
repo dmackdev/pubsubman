@@ -11,10 +11,10 @@ pub fn show_json_context_menu(ui: &mut egui::Ui, context: RenderContext<'_, '_, 
                 ui.ctx().copy_text(pointer);
             }
 
-            if ui.button("Copy contents").clicked() {
-                if let Ok(pretty_str) = serde_json::to_string_pretty(context.value()) {
-                    ui.ctx().copy_text(pretty_str);
-                }
+            if ui.button("Copy contents").clicked()
+                && let Ok(pretty_str) = serde_json::to_string_pretty(context.value())
+            {
+                ui.ctx().copy_text(pretty_str);
             }
         });
 }

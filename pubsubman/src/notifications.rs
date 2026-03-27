@@ -8,13 +8,7 @@ pub struct Notifications {
 
 impl Notifications {
     pub fn show(&mut self, ctx: &egui::Context) {
-        let ctx = ctx.clone();
-
-        ctx.style_mut(|style| {
-            style.visuals.widgets.noninteractive.bg_fill = egui::Color32::from_rgb(50, 50, 50);
-        });
-
-        self.toasts.show(&ctx);
+        self.toasts.show(ctx);
     }
 
     pub fn success(&mut self, message: String) {

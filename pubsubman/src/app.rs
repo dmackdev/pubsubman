@@ -58,6 +58,10 @@ impl App {
             .unwrap_or_default();
 
         cc.egui_ctx.set_theme(egui::Theme::Dark);
+        // Sets egui-notify toast background colour so it doesn't clash
+        cc.egui_ctx.global_style_mut(|style| {
+            style.visuals.widgets.noninteractive.bg_fill = egui::Color32::from_rgb(50, 50, 50);
+        });
 
         Self {
             topic_names: vec![],
@@ -110,8 +114,8 @@ impl App {
         }
     }
 
-    fn render_top_panel(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+    fn render_top_panel(&mut self, ui: &mut egui::Ui) {
+        egui::Panel::top("top_panel").show_inside(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
@@ -131,11 +135,11 @@ impl App {
         });
     }
 
-    fn render_topics_panel(&mut self, ctx: &egui::Context) {
-        egui::SidePanel::left("side_panel")
+    fn render_topics_panel(&mut self, ui: &mut egui::Ui) {
+        egui::Panel::left("side_panel")
             .resizable(true)
-            .default_width(250.0)
-            .show(ctx, |ui| {
+            .default_size(250.0)
+            .show_inside(ui, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.heading("Topics");
 
@@ -183,7 +187,7 @@ impl App {
             .is_some_and(|selected_topic| selected_topic == topic_name)
     }
 
-    fn render_central_panel(&mut self, ctx: &egui::Context) {
+    fn render_central_panel(&mut self, ui: &mut egui::Ui) {
         match &self.selected_topic {
             Some(selected_topic) => {
                 let selected_message =
@@ -196,21 +200,20 @@ impl App {
                                 .and_then(|messages| messages.get(*idx))
                         });
 
-                egui::TopBottomPanel::top("topic_view_top_panel")
-                    .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
-                    .show(ctx, |ui| {
+                egui::Panel::top("topic_view_top_panel")
+                    .frame(egui::Frame::side_top_panel(&ui.global_style()).inner_margin(8.0))
+                    .show_inside(ui, |ui| {
                         ui.vertical_centered(|ui| {
                             ui.heading(&selected_topic.0);
                         });
                     });
 
-                egui::SidePanel::right("selected_message")
+                egui::Panel::right("selected_message")
                     .frame(egui::Frame::NONE)
                     .resizable(true)
-                    .show_animated(ctx, selected_message.is_some(), |ui| {
+                    .show_animated_inside(ui, selected_message.is_some(), |ui| {
                         if let Some(message) = selected_message {
                             render_selected_message(
-                                ctx,
                                 ui,
                                 &self.front_tx,
                                 message,
@@ -222,12 +225,12 @@ impl App {
                         }
                     });
 
-                let bottom_panel_height = ctx.available_rect().height() / 2.0;
+                let bottom_panel_height = ui.content_rect().height() / 2.0;
 
-                egui::TopBottomPanel::bottom("topic_view_bottom_panel")
-                    .frame(egui::Frame::side_top_panel(&ctx.style()).inner_margin(8.0))
-                    .show_animated(
-                        ctx,
+                egui::Panel::bottom("topic_view_bottom_panel")
+                    .frame(egui::Frame::side_top_panel(&ui.global_style()).inner_margin(8.0))
+                    .show_animated_inside(
+                        ui,
                         self.memory.settings.view.show_publish_message_panel,
                         |ui| {
                             egui::ScrollArea::vertical()
@@ -244,11 +247,11 @@ impl App {
 
                 egui::CentralPanel::default()
                     .frame(
-                        egui::Frame::central_panel(&ctx.style())
+                        egui::Frame::central_panel(&ui.global_style())
                             .inner_margin(0.0)
                             .outer_margin(0.0),
                     )
-                    .show(ctx, |ui| {
+                    .show_inside(ui, |ui| {
                         match self.memory.subscriptions.get(selected_topic) {
                             Some(sub_name) => {
                                 let messages_view = self
@@ -285,7 +288,7 @@ impl App {
                     });
             }
             None => {
-                egui::CentralPanel::default().show(ctx, |ui| {
+                egui::CentralPanel::default().show_inside(ui, |ui| {
                     ui.with_layout(
                         egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
                         |ui| {
@@ -324,14 +327,14 @@ impl App {
 }
 
 impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        ctx.request_repaint();
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        ui.request_repaint();
         self.handle_backend_message();
-        self.render_top_panel(ctx);
-        self.render_topics_panel(ctx);
-        self.render_central_panel(ctx);
-        self.handle_exit(ctx);
-        self.notifications.show(ctx);
+        self.render_top_panel(ui);
+        self.render_topics_panel(ui);
+        self.render_central_panel(ui);
+        self.handle_exit(ui);
+        self.notifications.show(ui);
     }
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
